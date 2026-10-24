@@ -7,7 +7,7 @@ await mkdir(directory, { recursive: true });
 for (const file of ["main.js", "manifest.json", "styles.css", "LICENSE", "THIRD_PARTY_NOTICES.md"]) {
   await copyFile(file, `${directory}/${file}`);
 }
-const zip = `send2instapaper-${manifest.version}.zip`;
+const zip = `${manifest.id}-${manifest.version}.zip`;
 execFileSync("zip", ["-q", "-r", zip, manifest.id], { cwd: "dist" });
 const digest = createHash("sha256").update(await readFile(`dist/${zip}`)).digest("hex");
 await writeFile("dist/SHA256SUMS", `${digest}  ${zip}\n`);

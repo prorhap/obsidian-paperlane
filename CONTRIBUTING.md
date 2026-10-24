@@ -7,7 +7,7 @@ Use English for repository documentation. Keep claims tied to the evidence in [t
 1. Clone the repository and run `npm ci`.
 2. Run `npm run check`.
 3. Use a disposable Obsidian vault for manual testing.
-4. Run `npm run package` and copy `dist/send2instapaper/` into the test vault's `.obsidian/plugins/` directory.
+4. Run `npm run package` and copy `dist/send-to-instapaper/` into the test vault's `.obsidian/plugins/` directory.
 5. Restart Obsidian or disable and re-enable the plugin after updating files.
 
 Do not develop directly against irreplaceable vault data. Unit tests use synthetic documents and mocked API transports; running tests must not require a real token.
@@ -44,7 +44,7 @@ Documentation changes should keep relative links valid and report current behavi
 1. Complete the applicable manual checks in [the validation plan](docs/03-plan-and-validation.md).
 2. Select a semantic version in `x.y.z` format and update the manifest, package metadata/lockfile, versions mapping, and version-specific documentation.
 3. Run `npm ci` and `npm run package` from the intended release revision.
-4. Inspect `dist/send2instapaper/`, the ZIP, and `dist/SHA256SUMS` for unintended files or credentials.
+4. Inspect `dist/send-to-instapaper/`, the ZIP, and `dist/SHA256SUMS` for unintended files or credentials.
 5. Commit the reviewed source and metadata, then create a GitHub release with a tag exactly matching the manifest version. Do not add a `v` prefix.
 6. Attach `main.js`, `manifest.json`, and `styles.css` as individual release assets. The ZIP may be an additional manual-install asset, but does not replace them.
 7. Keep LICENSE and THIRD_PARTY_NOTICES available; the bundle references them and the manual package includes them. Include those notice files as additional release attachments as well.

@@ -4,14 +4,18 @@
 
 This build targets macOS desktop and requires Obsidian 1.11.4 or later. It is not listed in the community directory.
 
-1. Extract `dist/send2instapaper-0.1.0.zip`.
-2. Copy the `send2instapaper` directory into your vault's `.obsidian/plugins/` directory.
+1. Extract `dist/send-to-instapaper-0.1.1.zip`.
+2. Copy the `send-to-instapaper` directory into your vault's `.obsidian/plugins/` directory.
 3. Restart Obsidian.
 4. Enable **Send2Reader for Instapaper** under **Settings → Community plugins**.
 
 Build locally with `npm ci` followed by `npm run package` if no package is available. The build does not install itself in a vault or modify another plugin's settings.
 
 The current interface uses Korean labels. This English guide describes controls by purpose and provides stable command IDs for identifying the commands.
+
+### Upgrading from the initial 0.1.0 package
+
+Version 0.1.1 changes the plugin ID from `send2instapaper` to `send-to-instapaper` because directory IDs permit only lowercase letters and hyphens. If you manually installed 0.1.0, disable it first. With Obsidian closed, back up and rename its plugin directory to `send-to-instapaper`, then replace the shipped files with the new package while retaining your existing `data.json`. Restart and enable the new plugin. Reassign custom hotkeys because the command prefix has changed. Do not enable both IDs at once.
 
 ## Generate a personal token
 
@@ -62,9 +66,9 @@ Disconnect returns the plugin to secret storage with no entry selected. It does 
 
 | Command ID | Action |
 | --- | --- |
-| `send2instapaper:send-current` | Preview the current Markdown or HTML file |
-| `send2instapaper:choose-file` | Choose a supported file from the vault |
-| `send2instapaper:history` | Review transfer results |
+| `send-to-instapaper:send-current` | Preview the current Markdown or HTML file |
+| `send-to-instapaper:choose-file` | Choose a supported file from the vault |
+| `send-to-instapaper:history` | Review transfer results |
 
 You can also use the file menu action on `.md`, `.html`, and `.htm` files. HTML selection does not require an HTML viewer.
 

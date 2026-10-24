@@ -1,7 +1,7 @@
 {
-  "id": "send2instapaper",
+  "id": "send-to-instapaper",
   "name": "Send2Reader for Instapaper",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "minAppVersion": "1.11.4",
   "description": "Send Markdown and HTML notes with image checks to your Instapaper account.",
   "author": "Chulwoo Choi",

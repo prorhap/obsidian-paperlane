@@ -2,7 +2,7 @@
 
 Send Markdown and HTML files from your Obsidian vault to your personal Instapaper account as readable articles, with embedded local images and checks for missing content.
 
-This is an independent community plugin project, not an official Obsidian or Instapaper product. **Version 0.1.0 is a development build and is not yet listed in the community directory.** It targets desktop Obsidian 1.11.4 or later, with macOS as the initial validation platform. Installation and end-to-end testing inside Obsidian are still pending.
+This is an independent community plugin project, not an official Obsidian or Instapaper product. **Version 0.1.1 is a development build and is not yet listed in the community directory.** It targets desktop Obsidian 1.11.4 or later, with macOS as the initial validation platform. Installation and end-to-end testing inside Obsidian are still pending.
 
 ## Features
 
@@ -19,8 +19,8 @@ No LLM, image-hosting server, or email automation is required. Source notes are 
 ## Installation
 
 1. Build the plugin using the commands below, or use a development package provided by the maintainer.
-2. Extract `dist/send2instapaper-0.1.0.zip`.
-3. Copy its `send2instapaper` directory to `<vault>/.obsidian/plugins/`.
+2. Extract `dist/send-to-instapaper-0.1.1.zip`.
+3. Copy its `send-to-instapaper` directory to `<vault>/.obsidian/plugins/`.
 4. Restart Obsidian and enable **Send2Reader for Instapaper** under **Settings → Community plugins**.
 
 The package contains `main.js`, `manifest.json`, `styles.css`, and license notices. Do not place credentials inside the plugin directory. Use a test vault for development.
@@ -75,7 +75,7 @@ npm run package
 
 `check` runs unit tests, TypeScript checking, and bundling. `package` also generates third-party notices, the installation archive, and its SHA-256 checksum. These commands do not send articles or use a live account. Node.js and Electron APIs remain external to the browser-targeted CommonJS bundle; the plugin is explicitly desktop-only.
 
-For a future community release, attach `main.js`, `manifest.json`, and `styles.css` individually to a GitHub release whose tag exactly matches the manifest version, such as `0.1.0` without a `v` prefix. The ZIP is only a manual-install convenience. Follow the [contributor and release guide](CONTRIBUTING.md) and the [Obsidian guidelines review](docs/07-obsidian-guidelines.md) before publishing.
+For a future community release, attach `main.js`, `manifest.json`, and `styles.css` individually to a GitHub release whose tag exactly matches the manifest version, such as `0.1.1` without a `v` prefix. The ZIP is only a manual-install convenience. Follow the [contributor and release guide](CONTRIBUTING.md) and the [Obsidian guidelines review](docs/07-obsidian-guidelines.md) before publishing.
 
 ## Documentation
 

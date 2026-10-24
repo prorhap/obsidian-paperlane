@@ -17,7 +17,7 @@ Policy and release source text was read from the official `obsidianmd/obsidian-d
 | Area | Current alignment | Remaining boundary |
 | --- | --- | --- |
 | README | English purpose, installation, usage, account/payment conditions, network destinations, uploaded data, local journal contents, external-file boundary, and license | Keep disclosures current as features change |
-| Identity | Independent-product statement; plugin ID contains no Obsidian trademark; descriptive display name | Directory ID availability and trademark review are not established |
+| Identity | Independent-product statement; ID `send-to-instapaper` uses only lowercase letters and hyphens, contains no `obsidian`, and does not end with `plugin` | Directory ID availability and trademark review are not established |
 | Manifest | Short action-led description ending in a period; semantic version; author; minimum app version | Actual minimum-version runtime check pending |
 | Desktop APIs | `isDesktopOnly: true` for Node filesystem/process/crypto usage | macOS is the initial target; other desktop platforms untested |
 | Repository files | Root README, LICENSE, and manifest; third-party notices generated | Public release assets not published |
@@ -43,5 +43,7 @@ The settings page no longer adds a redundant top-level plugin heading. The artic
 The original Korean fixtures and interface strings are not documentation and remain unchanged. They include Unicode coverage that should not be lost during a future localization change.
 
 ## Before submission
+
+The first submission rejected ID `send2instapaper` because digits are not permitted. Version 0.1.1 corrects it to `send-to-instapaper`, updates package paths and command documentation, and adds `scripts/validate-manifest.mjs` to every build. The previous review missed this explicit ID restriction.
 
 Complete the real Obsidian and reading-device matrix, inspect unload behavior, verify the lowest supported Obsidian version, recheck dependency/license notices and token exclusion, and publish the exact raw assets with a matching version tag. The current development package must not be presented as community-approved.

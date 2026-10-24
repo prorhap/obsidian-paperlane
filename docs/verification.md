@@ -2,6 +2,8 @@
 
 Date: 2026-10-24. Version: 0.1.0 development build.
 
+Release correction on the same date: 0.1.1 changes the rejected `send2instapaper` ID to `send-to-instapaper`. The original API/browser observations below were made before this metadata change. The 39-test suite and build are rerun for 0.1.1, with an added build-time manifest/version validator. This does not establish the pending in-app checks.
+
 ## Recorded checks
 
 | Check | Result |

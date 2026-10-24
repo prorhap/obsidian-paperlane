@@ -1,6 +1,6 @@
 # Requirements and user experience
 
-Updated 2026-10-24 for the 0.1.0 development build. This document consolidates the original design and subsequent implementation decisions. Planned capabilities are explicitly separated from implemented behavior.
+Updated 2026-10-24 for the 0.1.1 development build. This document consolidates the original design and subsequent implementation decisions. Planned capabilities are explicitly separated from implemented behavior.
 
 ## Purpose and success criteria
 
@@ -49,7 +49,7 @@ Implemented behavior is covered by local tests where practical. Completion of th
 | `choose-file` | Select a `.md`, `.html`, or `.htm` file from the vault |
 | `history` | Review transfer status and reconcile uncertain results |
 
-Obsidian prefixes these IDs with `send2instapaper:`. The file menu also offers a send action for supported files. No default hotkeys are assigned. The current interface has Korean labels; English command descriptions here describe their purpose rather than their literal labels.
+Obsidian prefixes these IDs with `send-to-instapaper:`. The file menu also offers a send action for supported files. No default hotkeys are assigned. The current interface has Korean labels; English command descriptions here describe their purpose rather than their literal labels.
 
 ## Credentials and connection
 
