@@ -62,7 +62,7 @@ export function parsePlan(text: string): AiPlan {
 export interface AiRequest { url: string; headers: Record<string, string>; body: string }
 export type AiTransport = (request: AiRequest) => Promise<{ status: number; json: unknown }>;
 export function requestFor(provider: AiProvider, config: AiConfig, token: string, document: string): AiRequest {
-  if (!token.trim() || Array.from(token).some(c => c.charCodeAt(0) < 32 || c.charCodeAt(0) === 127)) throw new Error("Select a valid API key or helper token in AI settings.");
+  if (!token.trim() || Array.from(token).some(c => c.charCodeAt(0) < 32 || c.charCodeAt(0) === 127)) throw new Error("The provider connection is missing or invalid. Check its setup in Paperlane settings.");
   if (!config.model.trim() || config.model.length > 2048) throw new Error("Enter a model ID in Advanced settings.");
   if (Buffer.byteLength(document) > 240000) throw new Error("This document is too large for AI review (240 KB of text and structure). Local conversion is still available.");
   const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -113,7 +113,7 @@ export async function review(provider: AiProvider, config: AiConfig, token: stri
   const request = requestFor(provider, config, token, document);
   let result: Awaited<ReturnType<AiTransport>>;
   try { result = await transport(request); }
-  catch { throw new Error(provider === "profile" ? "Could not reach the local helper. Start it, then check its pairing token." : "The AI request did not complete. Your preview is unchanged; retry manually."); }
+  catch { throw new Error(provider === "profile" ? "Could not reach the local helper. Restart the helper exported from this vault." : "The AI request did not complete. Your preview is unchanged; retry manually."); }
   if (result.status < 200 || result.status >= 300) {
     const hint = result.status === 401 || result.status === 403 ? "Check the key, permissions, or AWS profile login."
       : result.status === 429 ? "The service is busy or your quota was reached. Try later."

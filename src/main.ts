@@ -1,3 +1,4 @@
+import { connectHelper } from "./helper-connection";
 import { freshSettings } from "./settings-render";
 import helperSource from "../helper/server.py";
 import { defaultAi, loadAi, PROVIDERS, review, REVIEW_INSTRUCTIONS, type AiPlan, type AiProvider } from "./ai";
@@ -105,11 +106,13 @@ export default class Paperlane extends Plugin {
     const ai = loadAi(this.data.settings.ai);
     if (ai.provider === "off") throw new Error("Choose an AI provider in Paperlane settings first.");
     const config = ai.configs[ai.provider];
-    const token = config.secretId ? this.app.secretStorage.getSecret(config.secretId) : null;
-    if (!token) throw new Error("Link an API key or helper token in Paperlane AI settings.");
+    let token = ai.provider === "profile" ? null : config.secretId ? this.app.secretStorage.getSecret(config.secretId) : null;
+    if (!token && ai.provider !== "profile") throw new Error("Link an API key in Paperlane AI settings.");
     const document = reviewDocument(html);
     this.aiBusy = true;
     try {
+      if (ai.provider === "profile") token = await this.connectLocalHelper();
+      if (!token) throw new Error("The provider connection is unavailable.");
       const plan = await review(ai.provider, config, token, document, async request => {
         let timer: number | undefined;
         try {
@@ -126,6 +129,35 @@ export default class Paperlane extends Plugin {
       validatePlan(html, plan);
       return plan;
     } finally { this.aiBusy = false; }
+  }
+  private async connectLocalHelper(): Promise<string> {
+    const folder = this.app.vault.getFolderByPath("Paperlane Helper");
+    if (!folder) throw new Error("Use Local helper setup to export and start the helper first. No helper token is required.");
+    this.requireVaultEntry(folder);
+    return connectHelper({
+      write: async (name, challenge) => {
+        const file = await this.app.vault.create(`${folder.path}/${name}`, JSON.stringify(challenge));
+        this.requireVaultEntry(file);
+      },
+      remove: async name => {
+        const file = this.app.vault.getAbstractFileByPath(`${folder.path}/${name}`);
+        if (file instanceof TFile) { this.requireVaultEntry(file); await this.app.vault.delete(file); }
+      },
+      request: async nonce => {
+        let timer: number | undefined;
+        try {
+          const response = await Promise.race([
+            requestUrl({ url: "http://127.0.0.1:27183/pair", method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ nonce }), throw: false }),
+            new Promise<never>((_, reject) => { timer = window.setTimeout(() => reject(new Error("Helper connection timed out. Start the helper and try again.")), 10000); }),
+          ]);
+          let json: unknown = null;
+          if (response.text.length < 2048) { try { json = JSON.parse(response.text); } catch { /* Invalid response handled by connectHelper. */ } }
+          return { status: response.status, json };
+        } catch {
+          throw new Error("Could not connect to the local helper. Start the updated helper from this vault, then try again.");
+        } finally { if (timer !== undefined) window.clearTimeout(timer); }
+      },
+    });
   }
   async exportHelper(): Promise<void> {
     const folder = "Paperlane Helper";
@@ -287,19 +319,19 @@ class SendSettings extends PluginSettingTab {
           });
         });
       } },
-      { name: provider === "profile" ? "Helper token" : "AI API key", visible: () => ai.provider !== "off",
+      { name: "AI API key", visible: () => ai.provider !== "off" && ai.provider !== "profile",
         desc: "Use Link to select or add a secret. This is separate from your Instapaper token.", render: row => {
           new SecretComponent(this.app, row.controlEl).setValue(config.secretId).onChange(async id => {
             config.secretId = id || ""; await this.plugin.persist();
           });
         } },
-      { name: "AWS profile", visible: () => ai.provider === "profile", desc: "Your local AWS profile name. GPT-6 Astra (low) is selected automatically.", render: row => {
+      { name: "AWS profile", visible: () => ai.provider === "profile", desc: "Enter your AWS profile name. The local helper connects automatically; no API key or helper token is needed.", render: row => {
         row.addText(t => t.setPlaceholder("default").setValue(config.profile).onChange(async value => {
           config.profile = value.trim() || "default"; await this.plugin.persist();
         }));
       } },
       { name: "Local helper setup", visible: () => ai.provider === "profile",
-        desc: "One-time setup keeps AWS credentials outside Obsidian. The helper runs only while its terminal is open.", render: row => {
+        desc: "Start the helper once per session. Connection authentication is automatic; AWS credentials stay outside Obsidian.", render: row => {
           row.addButton(b => b.setButtonText("Setup instructions").onClick(() => new HelperSetupModal(this.app, this.plugin).open()));
         } },
       { name: "Model", visible: () => ai.provider !== "off",
@@ -341,8 +373,8 @@ class HelperSetupModal extends Modal {
     }));
     this.contentEl.createEl("p", { text: "2. Open a terminal in the exported Paperlane Helper folder and run:" });
     this.contentEl.createEl("pre", { text: 'python3 -m venv "$HOME/.local/share/paperlane/venv"\n"$HOME/.local/share/paperlane/venv/bin/pip" install boto3\n"$HOME/.local/share/paperlane/venv/bin/python" paperlane-helper.py' });
-    this.contentEl.createEl("p", { text: "3. In AI settings, link the Helper token printed in the terminal using Add secret. Enter your profile name and click Test connection. If you use AWS SSO, sign in first with aws sso login --profile YOUR_PROFILE." });
-    this.contentEl.createEl("p", { text: "Keep the terminal open while reviewing. The pairing token is stored outside your vault and reused on restart. Ctrl+C stops the helper. No background service is installed." });
+    this.contentEl.createEl("p", { text: "3. Select AWS profile in Paperlane, enter your profile name, and click Test connection. The connection is automatic. If you use AWS SSO, sign in first with aws sso login --profile YOUR_PROFILE." });
+    this.contentEl.createEl("p", { text: "Keep the terminal open while reviewing. No token needs to be copied or entered. Upgrading an older helper? Export it again and restart the terminal command. Ctrl+C stops the helper. No background service is installed." });
   }
 }
 

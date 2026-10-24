@@ -104,3 +104,9 @@ The opt-in tag setting, Markdown extraction, official `{ name }` save payload, a
 ## 0.4.1 settings redraw regression
 
 The host can reuse a setting row during `update()`. Custom elements were accumulating outside its managed component lifecycle. All imperative settings renders now clear managed/unmanaged controls, dispose custom status elements, and provide idempotent cleanup. Tests repeat provider changes and simulate a delayed old cleanup; Advanced remains a single control and active provider fields remain intact. All 65 TypeScript tests, lint, type checking and build passed.
+
+## 0.4.2 automatic helper connection
+
+69 TypeScript tests and eight helper tests validate mutual directory proof, invalid signatures, malformed tokens, missing/expired/replayed challenges, browser-origin and symlink rejection, and cleanup on success/failure. The helper leaves file deletion to Vault API to avoid races with Obsidian's file index.
+
+An explicitly authorized real AWS CLI call used profile `default`, region `us-west-2`, model `global.openai.gpt-6-astra`, and `additionalModelRequestFields.reasoning.effort = low`. It returned `PAPERLANE_OK`, `stopReason = end_turn`, 17 input tokens and 9 output tokens. No vault text was included. This verifies actual AWS access and Converse parameters, not live end-to-end helper/UI behavior.
