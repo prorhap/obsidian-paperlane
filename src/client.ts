@@ -41,6 +41,7 @@ export class InstapaperClient {
       title: article.title, private_source: "Obsidian", content: article.html,
       description: `Obsidian에서 보낸 문서 [s2r:${jobId}]`,
       ...(folderId ? { folder_id: folderId } : {}),
+      ...(article.tags?.length ? { tags: article.tags.map(name => ({ name })) } : {}),
     });
     if (!object(x) || !validId(x.id)) throw new ApiError(0, "저장 ID를 확인하지 못했습니다. 재전송 전에 결과 확인이 필요합니다.");
     return x as unknown as Bookmark;

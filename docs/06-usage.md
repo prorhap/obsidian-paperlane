@@ -135,3 +135,13 @@ The local source checkout can retain its original directory name; Git remotes an
 ### Vault file boundary
 
 Paperlane reads only selected files and referenced images registered in the current vault and creates HTML exports through the Vault API. It no longer resolves symlinks with Node.js. Files in linked folders may reside physically outside the vault if Obsidian exposes them as vault entries. Review the selected document and referenced images before sending.
+
+## Optional tag transfer
+
+Enable **Sync tags** in Settings → Paperlane to include Markdown frontmatter `tags` and inline hashtags. The default is off, including existing installations. The preview lists the tags that will be sent. Categories, code, link destinations, escaped hashes, and hidden Obsidian comments are excluded; nested tag paths retain their slash. HTML files have no Obsidian tags.
+
+Tags are sent as Instapaper API tag-name objects with the initial save. This is one-way transfer, not background synchronization. Changed tags count as a changed snapshot on the next send. Turning the switch off does not remove tags from existing Instapaper bookmarks. If the setting changes while a preview is open, reopen the preview before sending.
+
+## Send completion
+
+The button shows **Sending…** while the request and verification are running. A saved article shows a result panel and notification; select **Done** to close the preview. If storage succeeded but verification needs attention, the panel explicitly says the article was saved. An unconfirmed request offers **View history** so you can reconcile it without accidentally submitting it again.

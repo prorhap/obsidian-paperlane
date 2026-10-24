@@ -11,6 +11,7 @@ import { toHtml } from "hast-util-to-html";
 import { visit } from "unist-util-visit";
 import { parseDocument } from "yaml";
 import type { Element, ElementContent, Root, RootContent, Text } from "hast";
+import { normalizeTags, inlineTags } from "./tags";
 import type { Article, ConvertOptions, Source, Warning } from "./types";
 import { bytesToData, imageMime, MAX_ARTICLE, MAX_IMAGE, publicImageUrl, safeLink, sanitizeSvg, validatedDataImage } from "./images";
 
@@ -105,6 +106,7 @@ export async function convert(source: Source, options: ConvertOptions = {}): Pro
   const warnings: Warning[] = [];
   const warn = (code: string, message: string, loss = true) => warnings.push({ code, message, loss });
   let title = "";
+  const tags: string[] = [];
   let tree: Root;
   if (source.format === "md") {
     let body = source.text;
@@ -113,11 +115,13 @@ export async function convert(source: Source, options: ConvertOptions = {}): Pro
       try {
         const data = parseDocument(fm[1]!).toJS({ maxAliasCount: 0 }) as Record<string, unknown> | null;
         if (data && typeof data.title === "string") title = data.title;
+        if (options.syncTags && data) tags.push(...normalizeTags(data.tags));
       } catch { warn("frontmatter", "frontmatter를 읽지 못해 파일명을 제목 후보로 사용합니다.", false); }
       body = body.slice(fm[0].length);
     }
     const processor = unified().use(remarkParse).use(remarkGfm);
     const md = processor.parse(body);
+    if (options.syncTags) tags.push(...inlineTags(md, body));
     rewriteWiki(md as unknown as MdNode);
     visit(md, "code", n => {
       if (["mermaid", "dataview", "dataviewjs", "base"].includes(n.lang || "")) {
@@ -148,6 +152,7 @@ export async function convert(source: Source, options: ConvertOptions = {}): Pro
   if (!title) throw new Error("문서 제목이 비어 있습니다.");
 
   const article: Article = { title, html: "", text: "", checkpoints: [], images: [], warnings };
+  if (options.syncTags) article.tags = normalizeTags(tags);
   const inlineSvgs = new Map<string, string>();
   let imageIndex = 0;
   // Remove executable subtrees before sanitization; converting a form must not submit it.

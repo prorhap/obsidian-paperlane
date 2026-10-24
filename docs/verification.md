@@ -88,3 +88,7 @@ GitHub Actions run `40090983450` built and published 0.1.4 from commit `67caac15
 ## Version 0.2.0 release verification
 
 The public release series begins at 0.2.0. The earlier 0.1.4 release was returned to draft status. GitHub Actions run 40091813080 published 0.2.0 from commit 3220ff2ee94a9021825f79826caa37ae2904a520. Typed lint, 44 tests, and the build passed. All three downloaded assets matched published SHA-256 digests and independently verified GitHub attestations. The downloaded manifest identifies Paperlane, ID `paperlane`, version 0.2.0, minimum Obsidian version 1.13.0.
+
+## Version 0.3.0 tag transfer and completion feedback
+
+The opt-in tag setting, Markdown extraction, official `{ name }` save payload, and tag-sensitive deduplication are covered by automated tests. Completion feedback distinguishes confirmed saves, verification warnings, definitive failures, and uncertain outcomes. All 52 tests passed, along with typed lint and the production build. No real account was used for tag-write tests; actual Instapaper tag retention is not yet verified.

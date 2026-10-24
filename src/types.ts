@@ -17,6 +17,7 @@ export interface Article {
   html: string;
   text: string;
   checkpoints: string[];
+  tags?: string[];
   images: ArticleImage[];
   warnings: Warning[];
 }
@@ -33,6 +34,7 @@ export interface ConvertOptions {
   title?: string;
   wholeBody?: boolean;
   tableLists?: boolean;
+  syncTags?: boolean;
   imageUrls?: ReadonlyMap<string, string>;
   readAsset?: (reference: string, sourcePath: string) => Promise<Asset | null>;
   rasterizeSvg?: (svg: string) => Promise<Uint8Array>;
@@ -67,6 +69,7 @@ export interface Settings {
   accountId?: number;
   folderId?: number;
   tableLists: boolean;
+  syncTags?: boolean;
 }
 export interface PluginData {
   schema: 1;

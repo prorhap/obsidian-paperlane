@@ -2,12 +2,14 @@
 
 Send Markdown and HTML files from your Obsidian vault to your personal Instapaper account as readable articles, with embedded local images and checks for missing content.
 
-This is an independent community plugin project, not an official Obsidian or Instapaper product. **Version 0.2.2 is a development build under the new `paperlane` ID.** It targets desktop Obsidian 1.13.0 or later, with macOS as the initial validation platform. Installation and end-to-end testing inside Obsidian are still pending.
+This is an independent community plugin project, not an official Obsidian or Instapaper product. **Version 0.3.0 is a development build under the new `paperlane` ID.** It targets desktop Obsidian 1.13.0 or later, with macOS as the initial validation platform. Installation and end-to-end testing inside Obsidian are still pending.
 
 ## Features
 
 - Send the current Markdown note or choose a `.md`, `.html`, or `.htm` file from the vault.
 - Preview the converted article and review conversion losses before sending.
+- Optionally send Markdown tags with the article using the Sync tags setting (off by default).
+- See clear sending, saved, and unconfirmed-result states.
 - Preserve paragraphs, tables, code, footnotes, callouts, and readable wiki-link labels.
 - Embed local PNG, JPEG, GIF, and WebP images; rasterize a restricted SVG subset to PNG.
 - Save to Instapaper home or an existing private folder using the official API.

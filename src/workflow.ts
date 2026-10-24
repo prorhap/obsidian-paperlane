@@ -27,7 +27,8 @@ export class SendCoordinator {
         const folder = (await client.folders()).find(f => f.id === folderId);
         if (!folder || folder.public) throw new Error("현재 계정의 비공개 폴더를 다시 선택하세요.");
       }
-      const fingerprint = hash(JSON.stringify([CONVERTER_VERSION, article.title, article.html]));
+      const fingerprint = hash(JSON.stringify([CONVERTER_VERSION, article.title, article.html,
+        ...(article.tags?.length ? [[...article.tags].sort()] : [])]));
       const jobs = this.journal.jobs.filter(j => j.accountId === accountId && j.path === path);
       if (jobs.some(j => ["unknown","submitting"].includes(j.status)))
         throw new Error("이 파일의 이전 전송 결과가 불명확합니다. 전송 이력에서 결과 확인을 먼저 실행하세요.");

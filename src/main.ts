@@ -5,13 +5,14 @@ import type { Account, Article, Folder, Job, PluginData, Source } from "./types"
 import { convert, cleanHtml } from "./converter";
 import { InstapaperClient } from "./client";
 import { SendCoordinator } from "./workflow";
+import { sendFeedback } from "./send-feedback";
 import { exportHtml } from "./template";
 import { MAX_IMAGE } from "./images";
 import { DEFAULT_ENV_NAME, resolveToken } from "./credentials";
 import { env } from "node:process";
 
 const defaults = (): PluginData => ({ schema: 1, settings: {
-  secretId: "", credentialSource: "secret-storage", envVarName: DEFAULT_ENV_NAME, tableLists: false,
+  secretId: "", credentialSource: "secret-storage", envVarName: DEFAULT_ENV_NAME, tableLists: false, syncTags: false,
 }, jobs: [] });
 const supported = (f: TFile) => /^(md|html|htm)$/i.test(f.extension);
 const label: Record<Job["status"], string> = { submitting: "전송 중", unknown: "결과 확인 필요", saved: "저장됨",
@@ -37,6 +38,7 @@ export default class Paperlane extends Plugin {
       this.data = x;
       this.data.settings.credentialSource ??= "secret-storage";
       this.data.settings.envVarName ??= DEFAULT_ENV_NAME;
+      this.data.settings.syncTags = this.data.settings.syncTags === true;
     }
     for (const j of this.data.jobs) if (j.status === "submitting") j.status = "unknown";
     this.coordinator = new SendCoordinator({ jobs: this.data.jobs, flush: () => this.persist() });
@@ -207,6 +209,12 @@ class SendSettings extends PluginSettingTab {
           });
         });
       } },
+      { name: "Sync tags", aliases: ["tags", "태그", "Instapaper"],
+        desc: "Include Markdown frontmatter and inline tags when sending. Categories are excluded. Existing bookmarks are not updated automatically.", render: row => {
+          row.addToggle(t => t.setValue(settings.syncTags === true).onChange(async value => {
+            settings.syncTags = value; await this.plugin.persist();
+          }));
+        } },
       { name: "넓은 표를 목록으로 변환", aliases: ["table", "list"], render: row => {
         row.addToggle(t => t.setValue(settings.tableLists).onChange(async value => {
           settings.tableLists = value; await this.plugin.persist();
@@ -256,8 +264,10 @@ class PreviewModal extends Modal {
   private sending = false;
   private accountId?: number;
   private folderId?: number;
+  private syncTags: boolean;
   constructor(app: App, private plugin: Paperlane, private source: Source) {
     super(app); this.accountId = plugin.connection?.id; this.folderId = plugin.data.settings.folderId;
+    this.syncTags = plugin.data.settings.syncTags === true;
   }
   onOpen(): void { this.modalEl.addClass("s2r-modal"); void this.rebuild(); }
   onClose(): void { this.generation++; this.contentEl.empty(); }
@@ -268,7 +278,7 @@ class PreviewModal extends Modal {
     this.contentEl.empty(); this.contentEl.createEl("p", { text: "문서와 그림을 준비하고 있습니다…" });
     try {
       const article = await convert(this.source, {
-        title: this.title, wholeBody: this.wholeBody, tableLists: this.plugin.data.settings.tableLists,
+        title: this.title, wholeBody: this.wholeBody, syncTags: this.syncTags, tableLists: this.plugin.data.settings.tableLists,
         imageUrls: this.imageUrls, readAsset: (r, p) => this.plugin.readAsset(r, p), rasterizeSvg,
       });
       if (gen !== this.generation) return;
@@ -291,6 +301,9 @@ class PreviewModal extends Modal {
     if (this.source.format === "html") new Setting(el).setName("HTML 전체 본문 사용")
       .setDesc("끄면 article 또는 main이 하나일 때 해당 본문을 사용합니다.")
       .addToggle(t => t.setValue(this.wholeBody).onChange(v => { this.wholeBody = v; void this.rebuild(); }));
+    new Setting(el).setName("Tags").setDesc(this.syncTags
+      ? article.tags?.length ? article.tags.map(tag => `#${tag}`).join(" ") : "No Markdown tags found."
+      : "Tag sync is off. Enable Sync tags in Paperlane settings to include tags.");
     const imageSection = el.createEl("details", { cls: "s2r-images" });
     imageSection.createEl("summary", { text: `그림 ${article.images.length}개 · 내장 ${article.images.filter(i => i.state === "embedded").length} · 누락 ${article.images.filter(i => i.state === "missing").length}` });
     for (const image of article.images) {
@@ -327,9 +340,25 @@ class PreviewModal extends Modal {
         status.setText(`저장: ${path}`);
       } catch (e) { status.setText(message(e)); }
     }));
+    let nextAction: "send" | "done" | "history" = "send";
     actions.addButton(b => b.setButtonText("Send to Instapaper").setCta().onClick(async () => {
+      if (nextAction === "done") { this.close(); return; }
+      if (nextAction === "history") { this.close(); new HistoryModal(this.app, this.plugin).open(); return; }
       if (this.sending) return;
-      b.setDisabled(true); this.sending = true;
+      b.setDisabled(true).setButtonText("Sending…"); this.sending = true;
+      const started = Date.now();
+      status.setAttribute("aria-busy", "true");
+      status.setAttribute("data-state", "sending");
+      status.setText("Saving your article and checking the result…");
+      const showResult = (job: Pick<Job, "status" | "bookmarkId" | "notes">) => {
+        const feedback = sendFeedback(job);
+        status.setAttribute("data-state", feedback.kind);
+        status.setText(`${feedback.title}\n${job.notes.join("\n")}`);
+        nextAction = feedback.action === "retry" ? "send" : feedback.action;
+        b.setButtonText(feedback.action === "done" ? "Done" : feedback.action === "history" ? "View history" : "Try again");
+        new Notice(feedback.title, feedback.kind === "success" ? 5000 : 10000);
+        status.scrollIntoView({ block: "nearest" });
+      };
       try {
         if (!this.accountId) throw new Error("설정에서 계정을 연결한 뒤 미리보기를 다시 여세요.");
         if (article.warnings.some(w => w.loss) && !this.allowLoss) throw new Error("누락되는 내용을 먼저 확인하세요.");
@@ -338,14 +367,32 @@ class PreviewModal extends Modal {
         if (!(file instanceof TFile) || (await this.plugin.source(file)).text !== this.source.text)
           throw new Error("원본 문서가 변경되었습니다. 미리보기를 닫고 다시 실행하세요.");
         const output = await this.currentArticle();
-        status.setText("Instapaper에 저장하고 본문과 그림 참조를 확인하고 있습니다…");
+
         const job = await this.plugin.coordinator.send(this.plugin.client(), this.accountId, this.source.path, output, this.folderId);
-        status.setText(`${label[job.status]}${job.bookmarkId ? ` · 저장 ID ${job.bookmarkId}` : ""}\n${job.notes.join("\n")}`);
-      } catch (e) { status.setText(message(e)); }
-      finally { this.sending = false; b.setDisabled(false); }
+        showResult(job);
+      } catch (e) {
+        const saved = [...this.plugin.data.jobs].reverse().find(job => job.path === this.source.path
+          && job.accountId === this.accountId && job.started >= started && job.bookmarkId);
+        if (saved) {
+          showResult({ ...saved, status: "warning", notes: [message(e)] });
+        } else if (this.plugin.data.jobs.some(job => job.path === this.source.path
+          && job.accountId === this.accountId && ["unknown", "submitting"].includes(job.status))) {
+          showResult({ status: "unknown", notes: [message(e)] });
+        } else {
+          status.setAttribute("data-state", "error");
+          status.setText(message(e));
+          b.setButtonText("Send to Instapaper");
+          new Notice(message(e), 8000);
+        }
+      } finally {
+        status.setAttribute("aria-busy", "false");
+        this.sending = false; b.setDisabled(false);
+      }
     }));
   }
   private async currentArticle(): Promise<Article> {
+    if (this.syncTags !== (this.plugin.data.settings.syncTags === true))
+      throw new Error("Tag sync settings changed. Close and reopen the preview before sending.");
     const title = this.title.trim() || this.article!.title;
     // Image mapping edits require preview refresh; send exactly the shown HTML.
     return { ...this.article!, title };

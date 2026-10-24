@@ -106,3 +106,12 @@ const schedule: ScheduleTimeout = (callback, milliseconds) => {
 class SendCoordinator extends BrowserSendCoordinator {
   constructor(journal: Journal, timeoutMs = 45000) { super(journal, timeoutMs, schedule); }
 }
+
+test("tag changes affect duplicate detection but tag order does not", async () => {
+  const h = harness(), c = new SendCoordinator(h.journal), a = await article();
+  const first = await c.send(h.client, 1, "tags.md", { ...a, tags: ["coffee", "reading"] });
+  const same = await c.send(h.client, 1, "tags.md", { ...a, tags: ["reading", "coffee"] });
+  assert.equal(same.id, first.id);
+  await c.send(h.client, 1, "tags.md", { ...a, tags: ["coffee"] });
+  assert.equal(h.saves, 2);
+});

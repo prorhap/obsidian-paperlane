@@ -20,3 +20,9 @@
 .s2r-status { white-space: pre-wrap; padding: 12px 0; overflow-wrap: anywhere; }
 .s2r-history { border-bottom: 1px solid var(--background-modifier-border); padding: 12px 0; }
 @media (max-width: 600px) { .s2r-article { padding: 18px; } }
+
+.s2r-status[data-state] { padding: 14px 16px; margin-top: 12px; border-radius: 8px; border: 1px solid var(--background-modifier-border); background: var(--background-secondary); }
+.s2r-status[data-state="sending"] { color: var(--text-accent); }
+.s2r-status[data-state="success"] { border-left: 4px solid var(--color-green); }
+.s2r-status[data-state="warning"] { border-left: 4px solid var(--text-warning); }
+.s2r-status[data-state="error"] { border-left: 4px solid var(--text-error); }
