@@ -1,7 +1,7 @@
 {
   "id": "paperlane",
   "name": "Paperlane",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "minAppVersion": "1.13.0",
   "description": "Send your Markdown and HTML notes to Instapaper with embedded images and content checks.",
   "author": "Chulwoo Choi",

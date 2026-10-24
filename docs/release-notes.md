@@ -1,4 +1,4 @@
-# Paperlane 0.1.4
+# Paperlane 0.2.0
 
 - Move to the `paperlane` plugin ID and `prorhap/obsidian-paperlane` repository.
 - Read selected notes and referenced images only through the Vault API, with current-vault identity and relative-path checks. Remove Node filesystem access and reject runtime filesystem/shell dependencies during builds.
