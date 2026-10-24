@@ -1,3 +1,4 @@
+import { freshSettings } from "./settings-render";
 import helperSource from "../helper/server.py";
 import { defaultAi, loadAi, PROVIDERS, review, REVIEW_INSTRUCTIONS, type AiPlan, type AiProvider } from "./ai";
 import { reviewDocument, validatePlan, describePlan } from "./html-review";
@@ -221,7 +222,7 @@ class SendSettings extends PluginSettingTab {
       this.plugin.connection = undefined; this.plugin.folders = [];
       settings.accountId = undefined; settings.folderId = undefined;
     };
-    return [
+    return freshSettings([
       { name: "Instapaper connection", desc: "Use the token issued with Generate access token in your Instapaper application." },
       { name: "Token source", aliases: ["token", "credentials", "environment"], render: row => {
         row.addDropdown(d => d.addOption("secret-storage", "Obsidian secret storage").addOption("environment", "Environment variable")
@@ -317,7 +318,7 @@ class SendSettings extends PluginSettingTab {
         } },
       { name: "Test AI connection", visible: () => ai.provider !== "off",
         desc: "Send a tiny sample, not a vault note. A small API charge may apply.", render: row => {
-          const status = row.descEl.createDiv({ attr: { role: "status", "aria-live": "polite" } });
+          const status = row.descEl.createDiv({ cls: "s2r-ai-status", attr: { role: "status", "aria-live": "polite" } });
           row.addButton(b => b.setButtonText("Test connection").onClick(async () => {
             b.setDisabled(true).setButtonText("Testing…"); status.setText("Checking model access…");
             try { await this.plugin.reviewHtml("<html><body><div>A short test paragraph.</div></body></html>"); status.setText("Connected. Ready for HTML review."); }
@@ -326,7 +327,7 @@ class SendSettings extends PluginSettingTab {
           }));
         } },
       { name: "Image support", desc: "Embedded PNG saving and web display have been verified with a free account. Other formats, large images, and mobile offline display require separate checks." },
-    ];
+    ]);
   }
 }
 

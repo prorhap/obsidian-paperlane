@@ -100,3 +100,7 @@ The opt-in tag setting, Markdown extraction, official `{ name }` save payload, a
 - Re-ran the local Transformer tutorial audit: full-body conversion retains the introduction and closing note; all 13 tables, 200 cells, two code blocks and eight disclosure summaries remain. The SVG sanitizer now preserves dashed connectors and transfers its accessible label to the replacement image.
 - AI endpoints and model IDs were checked against official provider documentation. No real API key, AWS profile inference, paid model response, or private document upload was used for testing. The SVG callback in the Node audit was absent; actual PNG rendering remains a browser check.
 - The complete source-coverage report and screenshot-based AI review remain outside this release.
+
+## 0.4.1 settings redraw regression
+
+The host can reuse a setting row during `update()`. Custom elements were accumulating outside its managed component lifecycle. All imperative settings renders now clear managed/unmanaged controls, dispose custom status elements, and provide idempotent cleanup. Tests repeat provider changes and simulate a delayed old cleanup; Advanced remains a single control and active provider fields remain intact. All 65 TypeScript tests, lint, type checking and build passed.

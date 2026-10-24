@@ -2,7 +2,7 @@
 
 Send Markdown and HTML files from your Obsidian vault to your personal Instapaper account as readable articles, with embedded local images and checks for missing content.
 
-This is an independent community plugin project, not an official Obsidian or Instapaper product. **Version 0.4.0 is a development build under the new `paperlane` ID.** It targets desktop Obsidian 1.13.0 or later, with macOS as the initial validation platform. Local installation and settings have been checked in Obsidian. Live AI provider calls and mobile Instapaper rendering require separate validation.
+This is an independent community plugin project, not an official Obsidian or Instapaper product. **Version 0.4.1 is a development build under the new `paperlane` ID.** It targets desktop Obsidian 1.13.0 or later, with macOS as the initial validation platform. Local installation and settings have been checked in Obsidian. Live AI provider calls and mobile Instapaper rendering require separate validation.
 
 ## Features
 

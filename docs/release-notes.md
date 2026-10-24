@@ -1,10 +1,7 @@
-# Paperlane 0.4.0
+# Paperlane 0.4.1
 
-- Add optional HTML review with four provider choices: Bedrock API key, Gemini, OpenAI, and AWS profile. Keys are linked through Obsidian secret storage; model and region overrides are under Advanced.
-- Default both Bedrock methods to us-west-2 and global inference IDs. Actual inference may run in other regions.
-- Use GPT-6 Astra with low reasoning for AWS profiles through an authenticated loopback helper, exported from the settings screen. AWS credentials are never read by the plugin.
-- Let models propose bounded formatting plans and apply them to original blocks after explicit review. No model-authored replacement prose, automatic document uploads, or provider fallback.
-- Preserve the full HTML body by default, expand static tab panels/dialogs, and preserve SVG dashed connectors and accessible labels.
-- Keep existing Instapaper credentials, tag settings, and history. AI assistance is off until configured.
+- Replace custom settings controls when switching providers instead of accumulating Advanced panels, secret selectors, or connection status elements.
+- Dispose each render once so delayed cleanup cannot remove the current provider's controls.
+- Keep Bedrock defaults at us-west-2 with global inference IDs. AWS profile continues to use GPT-6 Astra with low reasoning.
 
-Live paid provider calls have not been run as part of this release validation. Review plans are text/structure analysis, not visual or factual verification. JavaScript-generated content is not fetched or executed.
+Validation: 65 tests plus lint, type checking, and build passed. Provider-switch regression tests cover all four providers and stale cleanup callbacks. No paid model requests were made.
