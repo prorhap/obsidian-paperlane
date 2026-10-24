@@ -42,7 +42,7 @@ export default class Paperlane extends Plugin {
     this.coordinator = new SendCoordinator({ jobs: this.data.jobs, flush: () => this.persist() });
     await this.persist();
     this.addSettingTab(new SendSettings(this.app, this));
-    this.addCommand({ id: "send-current", name: "현재 문서를 Instapaper로 보내기", checkCallback: checking => {
+    this.addCommand({ id: "send-current", name: "Send current note to Instapaper", checkCallback: checking => {
       const file = this.app.workspace.getActiveFile();
       if (!file || !supported(file)) return false;
       if (!checking) void this.openPreview(file);
@@ -51,7 +51,7 @@ export default class Paperlane extends Plugin {
     this.addCommand({ id: "choose-file", name: "보낼 Markdown 또는 HTML 파일 선택", callback: () => new FilePicker(this.app, this).open() });
     this.addCommand({ id: "history", name: "전송 이력과 결과 확인", callback: () => new HistoryModal(this.app, this).open() });
     this.registerEvent(this.app.workspace.on("file-menu", (menu, file) => {
-      if (file instanceof TFile && supported(file)) menu.addItem(item => item.setTitle("Instapaper로 보내기")
+      if (file instanceof TFile && supported(file)) menu.addItem(item => item.setTitle("Send to Instapaper")
         .setIcon("send").onClick(() => { void this.openPreview(file); }));
     }));
     this.registerEvent(this.app.vault.on("rename", (file, oldPath) => {
@@ -280,7 +280,7 @@ class PreviewModal extends Modal {
   private render(): void {
     const article = this.article!; const el = this.contentEl; el.empty();
     el.createEl("p", { text: "PAPERLANE / 읽기용 사본", cls: "s2r-kicker" });
-    el.createEl("h2", { text: "Instapaper로 보내기" });
+    el.createEl("h2", { text: "Send to Instapaper" });
     el.createEl("p", { text: `${this.source.path} · ${this.plugin.connection?.username || "계정 연결 전"}`, cls: "s2r-muted" });
     new Setting(el).setName("제목").addText(t => t.setValue(article.title).onChange(v => { this.title = v; }));
     new Setting(el).setName("저장 위치").addDropdown(d => {
@@ -327,7 +327,7 @@ class PreviewModal extends Modal {
         status.setText(`저장: ${path}`);
       } catch (e) { status.setText(message(e)); }
     }));
-    actions.addButton(b => b.setButtonText("Instapaper로 보내기").setCta().onClick(async () => {
+    actions.addButton(b => b.setButtonText("Send to Instapaper").setCta().onClick(async () => {
       if (this.sending) return;
       b.setDisabled(true); this.sending = true;
       try {
