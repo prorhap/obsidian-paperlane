@@ -2,7 +2,7 @@
 
 Send Markdown and HTML files from your Obsidian vault to your personal Instapaper account as readable articles, with embedded local images and checks for missing content.
 
-This is an independent community plugin project, not an official Obsidian or Instapaper product. **Version 0.1.2 is a development build and is not yet listed in the community directory.** It targets desktop Obsidian 1.11.4 or later, with macOS as the initial validation platform. Installation and end-to-end testing inside Obsidian are still pending.
+This is an independent community plugin project, not an official Obsidian or Instapaper product. **Version 0.1.3 is a development build. The directory entry has been submitted, and automated review is still in progress.** It targets desktop Obsidian 1.11.4 or later, with macOS as the initial validation platform. Installation and end-to-end testing inside Obsidian are still pending.
 
 ## Features
 
@@ -18,12 +18,12 @@ No LLM, image-hosting server, or email automation is required. Source notes are 
 
 ## Installation
 
-1. Build the plugin using the commands below, or use a development package provided by the maintainer.
-2. Extract `dist/send-to-instapaper-0.1.2.zip`.
-3. Copy its `send-to-instapaper` directory to `<vault>/.obsidian/plugins/`.
+1. Download `main.js`, `manifest.json`, and `styles.css` from the matching GitHub release.
+2. Create `<vault>/.obsidian/plugins/send-to-instapaper/`.
+3. Copy the three files into that directory, preserving existing `data.json` when upgrading.
 4. Restart Obsidian and enable **Paperlane** under **Settings → Community plugins**.
 
-The package contains `main.js`, `manifest.json`, `styles.css`, and license notices. Do not place credentials inside the plugin directory. Use a test vault for development.
+The published release contains only the three files Obsidian installs. Project and dependency license notices are embedded in `main.js`. A local ZIP with separate notices can still be built with `npm run package`. Do not place credentials inside the plugin directory. Use a test vault for development.
 
 ## Quick start
 
@@ -47,7 +47,7 @@ Remote HTTPS image references remain in the uploaded article. Instapaper or the 
 
 There is no plugin telemetry, advertising, automatic updater, or runtime dependency download. Instapaper processes uploaded content under its [privacy policy](https://www.instapaper.com/privacy).
 
-The plugin reads selected vault files and referenced vault images. It resolves filesystem paths to reject symlinks that lead outside the vault; it does not intentionally read external file contents. Optional authentication reads one named process environment variable. The separate macOS launcher starts the installed Obsidian application; it is not run by the plugin.
+The file picker inspects only the immediate children of the folder you browse; it does not build an inventory of every vault path. The plugin reads selected vault files and referenced images through `vault.read` and `vault.readBinary`, and writes exports through `vault.create`. Its only Node filesystem operation is `fs.promises.realpath`, used to reject source files and export directories whose symlinks resolve outside the vault. This resolves path metadata and does not read or write file contents. It is not a sandbox against concurrent filesystem changes, and a generic direct-filesystem-access warning may remain in automated review. Optional authentication reads one named process environment variable. The separate macOS launcher starts the installed Obsidian application; it is not run by the plugin.
 
 Token values are not stored in plugin settings, transfer history, logs, or source code. Settings contain a secret-storage reference or environment-variable name. Transfer history contains account IDs, file paths, article titles, content hashes, timestamps, status notes, and remote bookmark IDs; it does not contain complete article bodies. Treat the vault's plugin data as potentially sensitive and subject to your own sync configuration.
 
@@ -73,9 +73,18 @@ npm run check
 npm run package
 ```
 
-`check` runs unit tests, TypeScript checking, and bundling. `package` also generates third-party notices, the installation archive, and its SHA-256 checksum. These commands do not send articles or use a live account. Node.js and Electron APIs remain external to the browser-targeted CommonJS bundle; the plugin is explicitly desktop-only.
+`check` runs unit tests, manifest/README validation, notice generation, TypeScript checking, and bundling. `package` additionally creates a local installation archive and its SHA-256 checksum. These commands do not send articles or use a live account. Node.js and Electron APIs remain external to the browser-targeted CommonJS bundle; the plugin is explicitly desktop-only.
 
-For a future community release, attach `main.js`, `manifest.json`, and `styles.css` individually to a GitHub release whose tag exactly matches the manifest version, such as `0.1.2` without a `v` prefix. The ZIP is only a manual-install convenience. Follow the [contributor and release guide](CONTRIBUTING.md) and the [Obsidian guidelines review](docs/07-obsidian-guidelines.md) before publishing.
+Tagged releases are built by [the release workflow](.github/workflows/release.yml) on GitHub Actions. It verifies the version and README title, tests and builds the plugin, generates build-provenance attestations, verifies them, and publishes only `main.js`, `manifest.json`, and `styles.css`. No personal token or Instapaper credentials are required. The workflow uses a temporary repository-scoped token and OIDC identity.
+
+After downloading a release file, verify its provenance with:
+
+```sh
+gh attestation verify main.js --repo prorhap/obsidian-send2instapaper
+gh attestation verify styles.css --repo prorhap/obsidian-send2instapaper
+```
+
+Earlier manually published releases have no such attestations. A checksum alone does not prove build provenance. Follow the [contributor and release guide](CONTRIBUTING.md) before tagging a version.
 
 ## Documentation
 
@@ -88,6 +97,7 @@ For a future community release, attach `main.js`, `manifest.json`, and `styles.c
 | [Image findings](docs/05-image-findings.md) | Official documentation, user reports, and live tests |
 | [Usage](docs/06-usage.md) | Installation, credentials, sending, and troubleshooting |
 | [Obsidian guidelines review](docs/07-obsidian-guidelines.md) | Official guidance mapped to this project |
+| [Directory review responses](docs/08-review-responses.md) | Changes and remaining warnings |
 | [Validation record](docs/verification.md) | Checks performed and checks still pending |
 
 ## License

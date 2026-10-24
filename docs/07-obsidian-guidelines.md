@@ -21,8 +21,8 @@ Policy and release source text was read from the official `obsidianmd/obsidian-d
 | Manifest | Short action-led description ending in a period; semantic version; author; minimum app version | Actual minimum-version runtime check pending |
 | Desktop APIs | `isDesktopOnly: true` for Node filesystem/process/crypto usage | macOS is the initial target; other desktop platforms untested |
 | Repository files | Root README, LICENSE, and manifest; third-party notices generated | Public release assets not published |
-| Distribution | Manual ZIP plus documented individual main.js/manifest.json/styles.css assets | No directory submission or approval |
-| Public APIs | Instance-scoped `this.app`, Vault/Editor reads, normalized export paths | Filesystem containment uses Node realpath intentionally |
+| Distribution | Tagged CI builds attest and publish only main.js/manifest.json/styles.css; full notices embedded in main.js | Old manual releases have extra files and no attestations; directory review is separate |
+| Public APIs | Instance-scoped `this.app`, Vault/Editor reads, normalized export paths; folder-scoped picker avoids whole-vault enumeration | Read-only Node realpath is retained to reject external symlink targets |
 | Commands | Appropriate conditional callback for current file; no redundant plugin ID or default hotkeys | Manual command/menu checks pending |
 | Settings UI | Removed redundant plugin-name heading | Current interface remains Korean; full in-app UX review pending |
 | DOM safety | Replaced direct innerHTML assignment with sanitized DocumentFragment insertion using `sanitizeHTMLToDom` | Test embedded images and footnotes through the additional sanitizer inside Obsidian |

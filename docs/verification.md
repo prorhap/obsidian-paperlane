@@ -56,3 +56,13 @@ Install the package in a test vault, verify both credential methods and preview 
 ## Paperlane rename
 
 Version 0.1.2 changes the display name, preview branding, export footer, and new export folder to Paperlane. The existing plugin ID and recovery markers remain unchanged. The 39-test suite, manifest validation, TypeScript check, and package build are rerun for this release. Existing live-service evidence and pending manual checks retain their original scope.
+
+## Directory-review improvements in 0.1.3
+
+Local verification: 41 tests passed, including temporary-filesystem symlink checks and an isolated manifest/README/tag validator test. TypeScript, bundling, local packaging, workflow YAML parsing, and embedded project/dependency license checks passed.
+
+The file picker now inspects one folder's immediate children instead of calling whole-vault enumeration APIs. Its in-app navigation still needs manual validation. Runtime Node filesystem usage is restricted to `realpath` metadata resolution; the automated generic filesystem warning may remain. External export directories are now rejected in addition to external source files.
+
+Both the 0.1.1 and 0.1.2 tagged READMEs matched their respective tagged manifests. The directory displayed the older 0.1.1 name during the Paperlane update, so mixed review inputs are a possible explanation of the title warning. This is not proof of the reviewer's internal implementation. Build validation now requires the current README heading to match the current manifest exactly.
+
+The release workflow builds tagged source on GitHub Actions, attests the three supported release files, verifies those attestations, and publishes them without extra attachments. Successful hosted execution and downloadable provenance must be verified separately from local workflow validation.

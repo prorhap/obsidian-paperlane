@@ -24,6 +24,7 @@ flowchart TD
 | `src/types.ts` | Shared article, source, settings, and journal types |
 | `src/converter.ts` | AST conversion, normalization, loss reporting, and HTML sanitization |
 | `src/images.ts` | Image signatures, URL rules, data URIs, SVG filtering, and hashing |
+| `src/vault-boundary.ts` | Read-only realpath containment checks for sources and export directories |
 | `src/credentials.ts` | Explicit credential-source selection and token validation |
 | `src/client.ts` | Instapaper endpoint methods and safe error messages |
 | `src/workflow.ts` | Single-process coordination, durable journal, and reconciliation |
@@ -42,7 +43,7 @@ Dependencies are pinned in `package.json` and `package-lock.json`. The converter
 
 A source contains a path, text, and format. The active Markdown buffer takes precedence over the disk copy when it corresponds to the selected file. Other input is read through the Vault API. Before sending, the source text must still match the captured value.
 
-Local image resolution uses Obsidian metadata and vault paths. Filesystem `realpath` checks compare the vault root and resolved target to reject symlinks outside the vault. This is a desktop containment check, not a promise of protection against a concurrent filesystem attacker changing a symlink after validation.
+The picker lists only the current folder's immediate children, with explicit parent/child navigation. It does not call whole-vault enumeration APIs. Local image resolution uses Obsidian metadata and vault paths. Filesystem `realpath` checks compare the vault root and resolved target to reject source files and export directories whose symlinks resolve outside the vault. `realpath` is the only runtime Node filesystem call; actual contents use the Vault API. This is a desktop containment check, not a promise of protection against a concurrent filesystem attacker changing a symlink after validation.
 
 Input text is limited to 5 MiB. Each image is limited to 8 MiB and final article HTML to 24 MiB. AST inspection has node/depth budgets, but those run after parsing; they are not a complete parser memory or execution-time bound.
 

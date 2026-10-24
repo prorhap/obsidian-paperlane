@@ -1,7 +1,6 @@
-import { Plugin, PluginSettingTab, Setting, SecretComponent, App, Modal, Notice, TFile, MarkdownView,
+import { Plugin, PluginSettingTab, Setting, SecretComponent, App, Modal, Notice, TFile, TFolder, MarkdownView,
   FuzzySuggestModal, requestUrl, FileSystemAdapter, normalizePath, sanitizeHTMLToDom } from "obsidian";
-import { realpath } from "node:fs/promises";
-import { resolve, relative, isAbsolute } from "node:path";
+import { assertVaultPath } from "./vault-boundary";
 import type { Account, Article, Folder, Job, PluginData, Source } from "./types";
 import { convert, cleanHtml } from "./converter";
 import { InstapaperClient } from "./client";
@@ -94,13 +93,11 @@ export default class Paperlane extends Plugin {
     this.folders = (await client.folders()).filter(f => !f.public);
     await this.persist();
   }
-  async contained(file: TFile): Promise<void> {
+  async contained(file: TFile | TFolder): Promise<void> {
+    if (this.app.vault.getAbstractFileByPath(file.path) !== file) throw new Error("볼트에 등록된 파일만 사용할 수 있습니다.");
     const adapter = this.app.vault.adapter;
     if (!(adapter instanceof FileSystemAdapter)) throw new Error("데스크톱 파일 볼트에서만 지원합니다.");
-    const base = await realpath(adapter.getBasePath());
-    const target = await realpath(resolve(base, file.path));
-    const rel = relative(base, target);
-    if (rel.startsWith("..") || isAbsolute(rel)) throw new Error("볼트 밖으로 연결된 파일은 읽지 않습니다.");
+    await assertVaultPath(adapter.getBasePath(), file.path);
   }
   async source(file: TFile): Promise<Source> {
     await this.contained(file);
@@ -134,6 +131,9 @@ export default class Paperlane extends Plugin {
   async export(article: Article): Promise<string> {
     const folder = "Paperlane Exports";
     if (!this.app.vault.getAbstractFileByPath(folder)) await this.app.vault.createFolder(folder);
+    const destination = this.app.vault.getFolderByPath(folder);
+    if (!destination) throw new Error("내보내기 폴더를 확인하세요.");
+    await this.contained(destination);
     const name = article.title.replace(/[*?"<>|:\\/]/g, "-").slice(0, 100) || "article";
     const path = normalizePath(`${folder}/${name}-${Date.now()}.html`);
     await this.app.vault.create(path, exportHtml(article));
@@ -141,11 +141,26 @@ export default class Paperlane extends Plugin {
   }
 }
 
-class FilePicker extends FuzzySuggestModal<TFile> {
-  constructor(app: App, private plugin: Paperlane) { super(app); this.setPlaceholder("Markdown 또는 HTML 파일 검색"); }
-  getItems(): TFile[] { return this.app.vault.getFiles().filter(supported); }
-  getItemText(item: TFile): string { return item.path; }
-  onChooseItem(item: TFile): void { void this.plugin.openPreview(item); }
+class FilePicker extends FuzzySuggestModal<TFile | TFolder> {
+  constructor(app: App, private plugin: Paperlane, private folder: TFolder = app.vault.getRoot()) {
+    super(app);
+    this.setPlaceholder(`${folder.path || "/"} — 폴더 또는 Markdown/HTML 파일 선택`);
+  }
+  getItems(): (TFile | TFolder)[] {
+    // Inspect only this folder's immediate children; never enumerate the whole vault.
+    return [
+      ...(this.folder.parent ? [this.folder.parent] : []),
+      ...this.folder.children.filter((f): f is TFile | TFolder =>
+        f instanceof TFolder || (f instanceof TFile && supported(f))),
+    ];
+  }
+  getItemText(item: TFile | TFolder): string {
+    return item === this.folder.parent ? "../" : item instanceof TFolder ? `${item.name}/` : item.name;
+  }
+  onChooseItem(item: TFile | TFolder): void {
+    if (item instanceof TFolder) new FilePicker(this.app, this.plugin, item).open();
+    else void this.plugin.openPreview(item);
+  }
 }
 
 class SendSettings extends PluginSettingTab {

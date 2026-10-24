@@ -23,4 +23,10 @@ assert.equal(pkg.version, manifest.version);
 assert.equal(lock.version, manifest.version);
 assert.equal(lock.packages[""].version, manifest.version);
 assert.equal(versions[manifest.version], manifest.minAppVersion);
+const readme = await readFile("README.md", "utf8");
+assert.equal(readme.match(/^# (.+)$/m)?.[1]?.trim(), manifest.name,
+  "README title must exactly match the manifest name.");
+if (process.env.RELEASE_TAG) {
+  assert.equal(process.env.RELEASE_TAG, manifest.version, "Release tag must match manifest version.");
+}
 console.log("Manifest and package versions validated.");
