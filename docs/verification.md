@@ -2,7 +2,7 @@
 
 Date: 2026-10-24. Version: 0.1.0 development build.
 
-Release correction on the same date: 0.1.1 changes the rejected `send2instapaper` ID to `send-to-instapaper`. The original API/browser observations below were made before this metadata change. The 39-test suite and build are rerun for 0.1.1, with an added build-time manifest/version validator. This does not establish the pending in-app checks.
+Release correction on the same date: 0.1.1 corrects a rejected historical plugin ID. The original API/browser observations below were made before this metadata change. The 39-test suite and build are rerun for 0.1.1, with an added build-time manifest/version validator. This does not establish the pending in-app checks.
 
 ## Recorded checks
 
@@ -71,7 +71,7 @@ The release workflow builds tagged source on GitHub Actions, attests the three s
 
 On 2026-10-24, GitHub Actions run `40089857304` successfully built tag `0.1.3` from commit `324bab4045415de4499aa1b9750ed70a436124a2`. Tests, the build, artifact attestation generation, attestation verification, and release publication all passed.
 
-The published release contains exactly `main.js`, `manifest.json`, and `styles.css`. All three were downloaded separately after publication; their GitHub asset SHA-256 digests matched, and `gh attestation verify --repo prorhap/obsidian-send2instapaper` passed for each downloaded file. The downloaded manifest identifies Paperlane 0.1.3 with ID `send-to-instapaper`.
+The published release contains exactly `main.js`, `manifest.json`, and `styles.css`. All three were downloaded separately after publication; their GitHub asset SHA-256 digests matched, and GitHub attestation verification against the historical source repository passed for each downloaded file. The downloaded manifest identifies the historical 0.1.3 release.
 
 This verifies published provenance, not community-review approval or the pending in-app/manual checks. Earlier release review results remain historical and do not describe the new artifact set.
 

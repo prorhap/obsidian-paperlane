@@ -5,7 +5,7 @@
 - Add searchable declarative settings, browser-window timers, Obsidian DOM helpers, and typed image mappings. Remove unnecessary type assertions and control-character regular expressions.
 - Require Obsidian 1.13.0 or later.
 
-Existing `send-to-instapaper` installations need a manual migration: disable the old plugin, back up its `data.json`, install Paperlane, and copy the data file locally to retain settings and history. Reassign custom hotkeys. Never upload this file.
+Previous development installations need a manual migration: disable the old plugin, back up its `data.json`, install Paperlane, and copy the data file locally to retain settings and history. Reassign custom hotkeys. Never upload this file.
 
 Linked folders follow Obsidian’s vault semantics; physical symlink targets are no longer inspected. This is a deliberate boundary change. Mobile/offline image retention and end-to-end in-app sending remain unverified.
 

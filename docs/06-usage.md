@@ -15,9 +15,7 @@ The current interface uses Korean labels. This English guide describes controls 
 
 ### Upgrading from the initial 0.1.0 package
 
-Version 0.1.1 changes the plugin ID from `send2instapaper` to `send-to-instapaper` because directory IDs permit only lowercase letters and hyphens. If you manually installed 0.1.0, disable it first. With Obsidian closed, back up and rename its plugin directory to `send-to-instapaper`, then replace the shipped files with the new package while retaining your existing `data.json`. Restart and enable the new plugin. Reassign custom hotkeys because the command prefix has changed. Do not enable both IDs at once.
 
-Version 0.1.2 renames the displayed plugin to **Paperlane** while retaining the `send-to-instapaper` ID, settings, transfer history, and command IDs from 0.1.1. New HTML exports go into `Paperlane Exports`; existing export files are not moved or deleted.
 
 ## Generate a personal token
 
@@ -127,8 +125,8 @@ Local limits are 5 MiB for input, 8 MiB per image, and 24 MiB for final HTML. Th
 
 Version 0.1.4 moves to `prorhap/obsidian-paperlane` and changes the plugin ID to `paperlane`. Obsidian treats it as a separate plugin, so existing installations do not automatically migrate. Obsidian 1.13.0 or later is required for searchable settings.
 
-1. Disable the old `send-to-instapaper` plugin and close Obsidian.
-2. Back up `.obsidian/plugins/send-to-instapaper/data.json` if it exists. It contains settings and transfer history, including private metadata. Do not upload it to GitHub or the community directory.
+1. Disable any previous development installation and close Obsidian.
+2. Back up the previous installation’s `data.json` if it exists. It contains settings and transfer history, including private metadata. Do not upload it to GitHub or the community directory.
 3. Install the new release in `.obsidian/plugins/paperlane/`. Copy the old `data.json` into that directory to retain history and the secret-storage reference or environment-variable name. No raw token migration is needed.
 4. Restart Obsidian, enable only the new Paperlane plugin, and check the connection. Reassign hotkeys using the `paperlane:` command prefix. Keep the old plugin disabled.
 

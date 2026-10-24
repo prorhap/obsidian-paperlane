@@ -44,6 +44,5 @@ The original Korean fixtures and interface strings are not documentation and rem
 
 ## Before submission
 
-The first submission rejected ID `send2instapaper` because digits are not permitted. Version 0.1.1 corrects it to `send-to-instapaper`, updates package paths and command documentation, and adds `scripts/validate-manifest.mjs` to every build. The previous review missed this explicit ID restriction.
 
 Complete the real Obsidian and reading-device matrix, inspect unload behavior, verify the lowest supported Obsidian version, recheck dependency/license notices and token exclusion, and publish the exact raw assets with a matching version tag. The current development package must not be presented as community-approved.
