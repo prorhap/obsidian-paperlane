@@ -66,3 +66,11 @@ The file picker now inspects one folder's immediate children instead of calling 
 Both the 0.1.1 and 0.1.2 tagged READMEs matched their respective tagged manifests. The directory displayed the older 0.1.1 name during the Paperlane update, so mixed review inputs are a possible explanation of the title warning. This is not proof of the reviewer's internal implementation. Build validation now requires the current README heading to match the current manifest exactly.
 
 The release workflow builds tagged source on GitHub Actions, attests the three supported release files, verifies those attestations, and publishes them without extra attachments. Successful hosted execution and downloadable provenance must be verified separately from local workflow validation.
+
+### Hosted release verification
+
+On 2026-10-24, GitHub Actions run `40089857304` successfully built tag `0.1.3` from commit `324bab4045415de4499aa1b9750ed70a436124a2`. Tests, the build, artifact attestation generation, attestation verification, and release publication all passed.
+
+The published release contains exactly `main.js`, `manifest.json`, and `styles.css`. All three were downloaded separately after publication; their GitHub asset SHA-256 digests matched, and `gh attestation verify --repo prorhap/obsidian-send2instapaper` passed for each downloaded file. The downloaded manifest identifies Paperlane 0.1.3 with ID `send-to-instapaper`.
+
+This verifies published provenance, not community-review approval or the pending in-app/manual checks. Earlier release review results remain historical and do not describe the new artifact set.
