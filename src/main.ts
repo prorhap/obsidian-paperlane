@@ -296,7 +296,7 @@ class PreviewModal extends Modal {
     for (const image of article.images) {
       const row = imageSection.createDiv({ cls: "s2r-image-row" });
       row.createEl("strong", { text: image.alt });
-      row.createEl("span", { text: ({ remote: "HTTPS 이미지", mapped: "지정한 HTTPS 이미지", embedded: "HTML에 내장", missing: "그림 누락" })[image.state] });
+      row.createSpan({ text: ({ remote: "HTTPS 이미지", mapped: "지정한 HTTPS 이미지", embedded: "HTML에 내장", missing: "그림 누락" })[image.state] });
       const input = row.createEl("input", { type: "url", placeholder: "선택 사항: 이 그림의 공개 HTTPS URL" });
       input.value = this.imageUrls.get(image.original) || "";
       input.addEventListener("change", () => {
