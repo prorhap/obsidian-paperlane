@@ -6,6 +6,7 @@ const result = await build({
   entryPoints: ["src/main.ts"],
   outfile: "main.js",
   bundle: true,
+  loader: { ".py": "text" },
   format: "cjs",
   target: "es2022",
   platform: "browser",

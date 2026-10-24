@@ -1,3 +1,6 @@
+import helperSource from "../helper/server.py";
+import { defaultAi, loadAi, PROVIDERS, review, REVIEW_INSTRUCTIONS, type AiPlan, type AiProvider } from "./ai";
+import { reviewDocument, validatePlan, describePlan } from "./html-review";
 import { Plugin, PluginSettingTab, Setting, type SettingDefinitionItem, SecretComponent, App, Modal, Notice, TFile, TFolder, MarkdownView,
   FuzzySuggestModal, requestUrl, normalizePath, sanitizeHTMLToDom } from "obsidian";
 import { assertVaultEntry, assertVaultRelativePath } from "./vault-boundary";
@@ -12,7 +15,7 @@ import { DEFAULT_ENV_NAME, resolveToken } from "./credentials";
 import { env } from "node:process";
 
 const defaults = (): PluginData => ({ schema: 1, settings: {
-  secretId: "", credentialSource: "secret-storage", envVarName: DEFAULT_ENV_NAME, tableLists: false, syncTags: false,
+  ai: defaultAi(), secretId: "", credentialSource: "secret-storage", envVarName: DEFAULT_ENV_NAME, tableLists: false, syncTags: false,
 }, jobs: [] });
 const supported = (f: TFile) => /^(md|html|htm)$/i.test(f.extension);
 const label: Record<Job["status"], string> = { submitting: "전송 중", unknown: "결과 확인 필요", saved: "저장됨",
@@ -25,6 +28,7 @@ export default class Paperlane extends Plugin {
   connection?: Account;
   folders: Folder[] = [];
   private writes = Promise.resolve();
+  private aiBusy = false;
   async onload(): Promise<void> {
     const loaded: unknown = await this.loadData();
     if (loaded) {
@@ -40,6 +44,7 @@ export default class Paperlane extends Plugin {
       this.data.settings.envVarName ??= DEFAULT_ENV_NAME;
       this.data.settings.syncTags = this.data.settings.syncTags === true;
     }
+    this.data.settings.ai = loadAi(this.data.settings.ai);
     for (const j of this.data.jobs) if (j.status === "submitting") j.status = "unknown";
     this.coordinator = new SendCoordinator({ jobs: this.data.jobs, flush: () => this.persist() });
     await this.persist();
@@ -93,6 +98,49 @@ export default class Paperlane extends Plugin {
     this.connection = account;
     this.folders = (await client.folders()).filter(f => !f.public);
     await this.persist();
+  }
+  async reviewHtml(html: string): Promise<AiPlan> {
+    if (this.aiBusy) throw new Error("Another AI request is running. Please wait.");
+    const ai = loadAi(this.data.settings.ai);
+    if (ai.provider === "off") throw new Error("Choose an AI provider in Paperlane settings first.");
+    const config = ai.configs[ai.provider];
+    const token = config.secretId ? this.app.secretStorage.getSecret(config.secretId) : null;
+    if (!token) throw new Error("Link an API key or helper token in Paperlane AI settings.");
+    const document = reviewDocument(html);
+    this.aiBusy = true;
+    try {
+      const plan = await review(ai.provider, config, token, document, async request => {
+        let timer: number | undefined;
+        try {
+          const response = await Promise.race([
+            requestUrl({ url: request.url, method: "POST", headers: request.headers, body: request.body, throw: false }),
+            new Promise<never>((_, reject) => { timer = window.setTimeout(() => reject(new Error("AI timeout")), 120000); }),
+          ]);
+          if (response.text.length > 200000) throw new Error("AI response too large");
+          let json: unknown;
+          try { json = JSON.parse(response.text); } catch { json = null; }
+          return { status: response.status, json };
+        } finally { if (timer !== undefined) window.clearTimeout(timer); }
+      });
+      validatePlan(html, plan);
+      return plan;
+    } finally { this.aiBusy = false; }
+  }
+  async exportHelper(): Promise<void> {
+    const folder = "Paperlane Helper";
+    if (!this.app.vault.getAbstractFileByPath(folder)) await this.app.vault.createFolder(folder);
+    const destination = this.app.vault.getFolderByPath(folder);
+    if (!destination) throw new Error("The helper folder is unavailable.");
+    this.requireVaultEntry(destination);
+    const files = { "paperlane-helper.py": helperSource, "review-protocol.json": JSON.stringify({ instructions: REVIEW_INSTRUCTIONS }, null, 2) };
+    for (const [name, contents] of Object.entries(files)) {
+      const path = `${folder}/${name}`;
+      const file = this.app.vault.getAbstractFileByPath(path);
+      if (file instanceof TFile) { this.requireVaultEntry(file); await this.app.vault.modify(file, contents); }
+      else if (!file) await this.app.vault.create(path, contents);
+      else throw new Error("A folder conflicts with the helper file name.");
+    }
+    new Notice("Helper files saved in Paperlane Helper. No credentials were exported.", 8000);
   }
   private requireVaultEntry(file: TFile | TFolder): void {
     assertVaultEntry(file, this.app.vault, path => this.app.vault.getAbstractFileByPath(path));
@@ -166,6 +214,9 @@ class SendSettings extends PluginSettingTab {
   constructor(app: App, private plugin: Paperlane) { super(app, plugin); }
   getSettingDefinitions(): SettingDefinitionItem[] {
     const settings = this.plugin.data.settings;
+    const ai = settings.ai ??= defaultAi();
+    const provider = ai.provider === "off" ? "bedrock" : ai.provider;
+    const config = ai.configs[provider];
     const resetConnection = () => {
       this.plugin.connection = undefined; this.plugin.folders = [];
       settings.accountId = undefined; settings.folderId = undefined;
@@ -226,8 +277,71 @@ class SendSettings extends PluginSettingTab {
           await this.plugin.persist(); this.update();
         }));
       } },
+      { name: "AI assistance", desc: "Optional HTML review. Nothing is uploaded until you click Review with AI in the preview. API usage may incur charges.", render: row => {
+        row.addDropdown(d => {
+          d.addOption("off", "Off — local conversion only");
+          for (const [id, title] of Object.entries(PROVIDERS)) d.addOption(id, title);
+          d.setValue(ai.provider).onChange(async value => {
+            ai.provider = value as typeof ai.provider; await this.plugin.persist(); this.update();
+          });
+        });
+      } },
+      { name: provider === "profile" ? "Helper token" : "AI API key", visible: () => ai.provider !== "off",
+        desc: "Use Link to select or add a secret. This is separate from your Instapaper token.", render: row => {
+          new SecretComponent(this.app, row.controlEl).setValue(config.secretId).onChange(async id => {
+            config.secretId = id || ""; await this.plugin.persist();
+          });
+        } },
+      { name: "AWS profile", visible: () => ai.provider === "profile", desc: "Your local AWS profile name. GPT-6 Astra (low) is selected automatically.", render: row => {
+        row.addText(t => t.setPlaceholder("default").setValue(config.profile).onChange(async value => {
+          config.profile = value.trim() || "default"; await this.plugin.persist();
+        }));
+      } },
+      { name: "Local helper setup", visible: () => ai.provider === "profile",
+        desc: "One-time setup keeps AWS credentials outside Obsidian. The helper runs only while its terminal is open.", render: row => {
+          row.addButton(b => b.setButtonText("Setup instructions").onClick(() => new HelperSetupModal(this.app, this.plugin).open()));
+        } },
+      { name: "Model", visible: () => ai.provider !== "off",
+        desc: provider === "profile" ? "GPT-6 Astra · low reasoning · global cross-region inference" : `${config.model} · selected for structured document review`, render: row => {
+          const details = row.controlEl.createEl("details", { cls: "s2r-ai-advanced" });
+          details.createEl("summary", { text: "Advanced" });
+          if (provider !== "profile") new Setting(details).setName("Model ID").addText(t => t.setValue(config.model).onChange(async value => {
+            config.model = value.trim(); await this.plugin.persist();
+          }));
+          if (["bedrock", "profile"].includes(provider)) new Setting(details).setName("AWS region").setDesc("Choose a region where your account can access the selected model.")
+            .addText(t => t.setValue(config.region).onChange(async value => { config.region = value.trim(); await this.plugin.persist(); }));
+          new Setting(details).setName("Restore defaults").addButton(b => b.setButtonText("Reset model and region").onClick(async () => {
+            const defaults = defaultAi().configs[provider]; config.model = defaults.model; config.region = defaults.region;
+            await this.plugin.persist(); this.update();
+          }));
+        } },
+      { name: "Test AI connection", visible: () => ai.provider !== "off",
+        desc: "Send a tiny sample, not a vault note. A small API charge may apply.", render: row => {
+          const status = row.descEl.createDiv({ attr: { role: "status", "aria-live": "polite" } });
+          row.addButton(b => b.setButtonText("Test connection").onClick(async () => {
+            b.setDisabled(true).setButtonText("Testing…"); status.setText("Checking model access…");
+            try { await this.plugin.reviewHtml("<html><body><div>A short test paragraph.</div></body></html>"); status.setText("Connected. Ready for HTML review."); }
+            catch (e) { status.setText(message(e)); }
+            finally { b.setDisabled(false).setButtonText("Test connection"); }
+          }));
+        } },
       { name: "Image support", desc: "Embedded PNG saving and web display have been verified with a free account. Other formats, large images, and mobile offline display require separate checks." },
     ];
+  }
+}
+
+class HelperSetupModal extends Modal {
+  constructor(app: App, private plugin: Paperlane) { super(app); }
+  onOpen(): void {
+    this.contentEl.createEl("h2", { text: "Connect your AWS profile" });
+    this.contentEl.createEl("p", { text: "Export the helper, then run it in a terminal. It reads your AWS profile and sends review requests to Bedrock using GPT-6 Astra with low reasoning. AWS credentials stay in the helper process." });
+    new Setting(this.contentEl).setName("1. Save helper files in your vault").addButton(b => b.setButtonText("Export helper").onClick(async () => {
+      try { await this.plugin.exportHelper(); b.setButtonText("Exported"); } catch (e) { new Notice(message(e)); }
+    }));
+    this.contentEl.createEl("p", { text: "2. Open a terminal in the exported Paperlane Helper folder and run:" });
+    this.contentEl.createEl("pre", { text: 'python3 -m venv "$HOME/.local/share/paperlane/venv"\n"$HOME/.local/share/paperlane/venv/bin/pip" install boto3\n"$HOME/.local/share/paperlane/venv/bin/python" paperlane-helper.py' });
+    this.contentEl.createEl("p", { text: "3. In AI settings, link the Helper token printed in the terminal using Add secret. Enter your profile name and click Test connection. If you use AWS SSO, sign in first with aws sso login --profile YOUR_PROFILE." });
+    this.contentEl.createEl("p", { text: "Keep the terminal open while reviewing. The pairing token is stored outside your vault and reused on restart. Ctrl+C stops the helper. No background service is installed." });
   }
 }
 
@@ -257,7 +371,11 @@ export async function rasterizeSvg(svg: string): Promise<Uint8Array> {
 class PreviewModal extends Modal {
   private article?: Article;
   private title = "";
-  private wholeBody = false;
+  private wholeBody = true;
+  private aiPlan?: AiPlan;
+  private aiApplied = false;
+  private reviewing = false;
+  private aiNotice = "";
   private imageUrls = new Map<string, string>();
   private allowLoss = false;
   private generation = 0;
@@ -272,13 +390,13 @@ class PreviewModal extends Modal {
   onOpen(): void { this.modalEl.addClass("s2r-modal"); void this.rebuild(); }
   onClose(): void { this.generation++; this.contentEl.empty(); }
   private async rebuild(): Promise<void> {
-    if (this.sending) return;
+    if (this.sending || this.reviewing) return;
     this.allowLoss = false;
     const gen = ++this.generation;
     this.contentEl.empty(); this.contentEl.createEl("p", { text: "문서와 그림을 준비하고 있습니다…" });
     try {
       const article = await convert(this.source, {
-        title: this.title, wholeBody: this.wholeBody, syncTags: this.syncTags, tableLists: this.plugin.data.settings.tableLists,
+        htmlPlan: this.aiApplied ? this.aiPlan : undefined, title: this.title, wholeBody: this.wholeBody, syncTags: this.syncTags, tableLists: this.plugin.data.settings.tableLists,
         imageUrls: this.imageUrls, readAsset: (r, p) => this.plugin.readAsset(r, p), rasterizeSvg,
       });
       if (gen !== this.generation) return;
@@ -301,6 +419,36 @@ class PreviewModal extends Modal {
     if (this.source.format === "html") new Setting(el).setName("HTML 전체 본문 사용")
       .setDesc("끄면 article 또는 main이 하나일 때 해당 본문을 사용합니다.")
       .addToggle(t => t.setValue(this.wholeBody).onChange(v => { this.wholeBody = v; void this.rebuild(); }));
+    if (this.source.format === "html") {
+      const ai = loadAi(this.plugin.data.settings.ai);
+      const box = el.createDiv({ cls: "s2r-warnings" });
+      box.createEl("strong", { text: "AI review" });
+      box.createEl("p", { text: ai.provider === "off" ? "Choose a provider in Paperlane settings to enable optional AI review. Local conversion is available without it."
+        : `Send this document's static text and structure to ${PROVIDERS[ai.provider]} for review. Images, scripts, and other vault notes are excluded. API charges may apply. This is not visual or factual verification.` });
+      if (this.aiNotice) box.createEl("p", { text: this.aiNotice, attr: { role: "status" } });
+      if (ai.provider !== "off") new Setting(box).addButton(b => b.setButtonText(this.reviewing ? "Reviewing…" : "Review with AI").setDisabled(this.reviewing || this.sending).onClick(async () => {
+        if (this.reviewing || this.sending) return;
+        const generation = this.generation;
+        this.reviewing = true; this.aiNotice = "Reviewing text and structure…"; this.render();
+        try {
+          const plan = await this.plugin.reviewHtml(this.source.text);
+          if (generation !== this.generation) return;
+          this.aiPlan = plan; this.aiApplied = false;
+          this.aiNotice = `Review complete: ${plan.changes.length} proposed formatting changes. Review the findings before applying.`;
+        } catch (e) { if (generation === this.generation) this.aiNotice = message(e); }
+        finally { this.reviewing = false; if (generation === this.generation) await this.rebuild(); }
+      }));
+      if (this.aiPlan) {
+        box.createEl("p", { text: "Model observations (not independently verified)" });
+        const findings = box.createEl("ul");
+        for (const finding of this.aiPlan.findings) findings.createEl("li", { text: finding });
+        for (const description of describePlan(this.source.text, this.aiPlan)) findings.createEl("li", { text: description });
+        new Setting(box).setName(this.aiApplied ? "Formatting applied" : "Apply suggested formatting").setDesc("Uses original text only. Inspect the updated preview before sending.")
+          .addButton(b => b.setButtonText(this.aiApplied ? "Use local conversion" : "Apply and preview").setDisabled(this.reviewing || this.sending).onClick(() => {
+            this.aiApplied = !this.aiApplied; void this.rebuild();
+          }));
+      }
+    }
     new Setting(el).setName("Tags").setDesc(this.syncTags
       ? article.tags?.length ? article.tags.map(tag => `#${tag}`).join(" ") : "No Markdown tags found."
       : "Tag sync is off. Enable Sync tags in Paperlane settings to include tags.");
@@ -344,7 +492,7 @@ class PreviewModal extends Modal {
     actions.addButton(b => b.setButtonText("Send to Instapaper").setCta().onClick(async () => {
       if (nextAction === "done") { this.close(); return; }
       if (nextAction === "history") { this.close(); new HistoryModal(this.app, this.plugin).open(); return; }
-      if (this.sending) return;
+      if (this.sending || this.reviewing) return;
       b.setDisabled(true).setButtonText("Sending…"); this.sending = true;
       const started = Date.now();
       status.setAttribute("aria-busy", "true");
@@ -393,6 +541,7 @@ class PreviewModal extends Modal {
   private async currentArticle(): Promise<Article> {
     if (this.syncTags !== (this.plugin.data.settings.syncTags === true))
       throw new Error("Tag sync settings changed. Close and reopen the preview before sending.");
+    if (this.reviewing) throw new Error("Wait for the AI review to finish.");
     const title = this.title.trim() || this.article!.title;
     // Image mapping edits require preview refresh; send exactly the shown HTML.
     return { ...this.article!, title };

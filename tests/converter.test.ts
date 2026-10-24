@@ -61,7 +61,10 @@ test("Unresolved width/quality template is not declared a usable remote image", 
 });
 test("Article extraction is optional and does not discard multiple candidates", async () => {
   const s = html("<body><nav>탐색</nav><article><p>본문</p></article></body>");
-  assert(!(await convert(s)).text.includes("탐색"));
+  assert((await convert(s)).text.includes("탐색"));
+  const extracted = await convert(s, { wholeBody: false });
+  assert(!extracted.text.includes("탐색"));
+  assert(extracted.warnings.some(w => w.code === "scope" && w.loss));
   assert((await convert(s, { wholeBody: true })).text.includes("탐색"));
   const a = await convert(html("<article>첫째</article><article>둘째</article>"));
   assert(a.text.includes("첫째") && a.text.includes("둘째"));

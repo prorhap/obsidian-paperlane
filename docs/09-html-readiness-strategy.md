@@ -1,5 +1,7 @@
 # HTML readiness and conversion strategy
 
+Implementation update (0.4.0): full-body HTML preservation, static tab/dialog expansion, SVG dashed-line/label preservation, and optional bounded AI formatting review have shipped. The audit below describes the older 0.3.0 baseline. The complete source-coverage report and visual review remain planned; see `10-ai-assistance.md` for current behavior.
+
 ## Decision
 
 Treat local HTML as an authored document whose meaning must survive conversion. A successful bookmark request does not establish that the original document survived. Add a preflight comparison from **source to outgoing article**, independently of the existing comparison from **outgoing article to saved content**.

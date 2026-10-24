@@ -92,3 +92,11 @@ The public release series begins at 0.2.0. The earlier 0.1.4 release was returne
 ## Version 0.3.0 tag transfer and completion feedback
 
 The opt-in tag setting, Markdown extraction, official `{ name }` save payload, and tag-sensitive deduplication are covered by automated tests. Completion feedback distinguishes confirmed saves, verification warnings, definitive failures, and uncertain outcomes. All 52 tests passed, along with typed lint and the production build. No real account was used for tag-write tests; actual Instapaper tag retention is not yet verified.
+
+## 0.4.0 AI assistance validation
+
+- TypeScript lint, 63 tests, type checking and release build passed locally.
+- Five Python helper tests passed, covering authenticated fake inference, denied browser/foreign-host requests, token enforcement, input/model bounds, and the fixed Astra/low request. No AWS call was made.
+- Re-ran the local Transformer tutorial audit: full-body conversion retains the introduction and closing note; all 13 tables, 200 cells, two code blocks and eight disclosure summaries remain. The SVG sanitizer now preserves dashed connectors and transfers its accessible label to the replacement image.
+- AI endpoints and model IDs were checked against official provider documentation. No real API key, AWS profile inference, paid model response, or private document upload was used for testing. The SVG callback in the Node audit was absent; actual PNG rendering remains a browser check.
+- The complete source-coverage report and screenshot-based AI review remain outside this release.

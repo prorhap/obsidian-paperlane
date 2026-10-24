@@ -1,3 +1,4 @@
+import type { AiPlan, AiSettings } from "./ai";
 export type ImageState = "remote" | "embedded" | "mapped" | "missing";
 export interface ArticleImage {
   id: string;
@@ -31,6 +32,7 @@ export interface Asset {
   path: string;
 }
 export interface ConvertOptions {
+  htmlPlan?: AiPlan;
   title?: string;
   wholeBody?: boolean;
   tableLists?: boolean;
@@ -63,6 +65,7 @@ export interface Job {
   notes: string[];
 }
 export interface Settings {
+  ai?: AiSettings;
   secretId: string;
   credentialSource?: "secret-storage" | "environment";
   envVarName?: string;

@@ -1,3 +1,4 @@
+import { applyPlan, flattenStaticPanels } from "./html-review";
 import { unified } from "unified";
 import remarkParse from "remark-parse";
 import remarkGfm from "remark-gfm";
@@ -133,16 +134,23 @@ export async function convert(source: Source, options: ConvertOptions = {}): Pro
   } else {
     tree = unified().use(rehypeParse).parse(source.text);
     budget(tree);
+    if (options.htmlPlan) applyPlan(tree, options.htmlPlan);
+    const panels = flattenStaticPanels(tree);
+    if (panels) warn("panels", `Expanded ${panels} static tab panels or dialogs into reading sections.`, false);
+    warn("html-layout", "HTML styles are simplified. Check formulas, tables, diagrams, and any content normally opened by a click. JavaScript-only content is not loaded.", false);
     visit(tree, "element", n => { if (n.tagName === "title" && !title) title = toText(n); });
     const bodies: Element[] = [];
     visit(tree, "element", n => { if (n.tagName === "body") bodies.push(n); });
     tree = { type: "root", children: bodies[0]?.children || tree.children };
-    if (!options.wholeBody) {
+    if (options.wholeBody === false) {
       const candidates: Element[] = [];
       visit(tree, "element", n => {
         if (n.tagName === "article" || n.tagName === "main") { candidates.push(n); return "skip"; }
       });
-      if (candidates.length === 1) tree = { type: "root", children: candidates[0]!.children };
+      if (candidates.length === 1) {
+        warn("scope", "Main-content extraction can omit introductions, closing notes, tabs, or dialogs. Use the full HTML body to retain them.");
+        tree = { type: "root", children: candidates[0]!.children };
+      }
       else if (candidates.length > 1) warn("body", "본문 후보가 여러 개라 전체 본문을 유지합니다.", false);
     }
   }
@@ -168,7 +176,7 @@ export async function convert(source: Source, options: ConvertOptions = {}): Pro
       if (n.tagName === "svg") {
         const key = `inline-svg-${inlineSvgs.size + 1}`;
         inlineSvgs.set(key, toHtml(n));
-        return [el("img", [], { src: key, alt: "SVG 그림" })];
+        return [el("img", [], { src: key, alt: String(n.properties.ariaLabel || n.children.filter(c => c.type === "element" && c.tagName === "title").map(c => toText(c)).join(" ") || "SVG diagram") })];
       }
       if (n.tagName === "img") {
         const src = actualImageSource(n);

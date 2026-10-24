@@ -26,3 +26,6 @@
 .s2r-status[data-state="success"] { border-left: 4px solid var(--color-green); }
 .s2r-status[data-state="warning"] { border-left: 4px solid var(--text-warning); }
 .s2r-status[data-state="error"] { border-left: 4px solid var(--text-error); }
+
+.s2r-ai-advanced { min-width: 180px; }
+.s2r-ai-advanced > summary { cursor: pointer; color: var(--text-muted); }

@@ -58,7 +58,7 @@ export function sanitizeSvg(input: string): string {
   const clean = sanitize(tree, {
     tagNames: allowed,
     attributes: { "*": ["id","viewBox","width","height","x","y","x1","x2","y1","y2","cx","cy","r","rx","ry",
-      "d","points","fill","fillRule","stroke","strokeWidth","strokeLinecap","strokeLinejoin","strokeDasharray",
+      "d","points","fill","fillRule","stroke","strokeWidth","strokeLinecap","strokeLinejoin","strokeDashArray",
       "opacity","fillOpacity","strokeOpacity","transform","fontSize","fontFamily","fontWeight","textAnchor",
       "dominantBaseline","offset","stopColor","stopOpacity","gradientUnits","gradientTransform",
       "clipPath","mask","markerStart","markerMid","markerEnd","markerWidth","markerHeight","refX","refY","orient"] },

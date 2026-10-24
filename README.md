@@ -2,7 +2,7 @@
 
 Send Markdown and HTML files from your Obsidian vault to your personal Instapaper account as readable articles, with embedded local images and checks for missing content.
 
-This is an independent community plugin project, not an official Obsidian or Instapaper product. **Version 0.3.1 is a development build under the new `paperlane` ID.** It targets desktop Obsidian 1.13.0 or later, with macOS as the initial validation platform. Installation and end-to-end testing inside Obsidian are still pending.
+This is an independent community plugin project, not an official Obsidian or Instapaper product. **Version 0.4.0 is a development build under the new `paperlane` ID.** It targets desktop Obsidian 1.13.0 or later, with macOS as the initial validation platform. Local installation and settings have been checked in Obsidian. Live AI provider calls and mobile Instapaper rendering require separate validation.
 
 ## Features
 
@@ -107,3 +107,9 @@ Earlier manually published releases have no such attestations. A checksum alone 
 ## License
 
 [MIT](LICENSE), copyright 2026 Chulwoo Choi. Bundled dependency notices are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## Optional AI review
+
+In Paperlane settings, choose **Bedrock API key**, **Gemini**, **OpenAI**, or **AWS profile**, then link the provider key in secret storage. Suggested models are preselected; overrides are under Advanced. AWS profile uses **GPT-6 Astra with low reasoning** through an authenticated local helper. Use **Setup instructions** to export and start it.
+
+In an HTML preview, click **Review with AI**, inspect the findings, and choose **Apply and preview**. The model suggests formatting changes; Paperlane applies them to original text. No automatic uploads or provider fallback occur. AI assistance is off by default. Read [setup, privacy boundaries, and limitations](docs/10-ai-assistance.md).
