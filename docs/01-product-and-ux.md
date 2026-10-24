@@ -1,6 +1,6 @@
 # Requirements and user experience
 
-Updated 2026-10-24 for the 0.1.1 development build. This document consolidates the original design and subsequent implementation decisions. Planned capabilities are explicitly separated from implemented behavior.
+Updated 2026-10-24 for the 0.1.2 development build. This document consolidates the original design and subsequent implementation decisions. Planned capabilities are explicitly separated from implemented behavior.
 
 ## Purpose and success criteria
 

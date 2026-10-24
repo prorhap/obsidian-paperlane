@@ -52,4 +52,4 @@ The existence of SecretStorage does not establish encryption, synchronization, o
 | Single-device scope | Keep reliability claims bounded | No distributed deduplication |
 | Scoped Obsidian UI styles | Respect themes and CSS snippets | Exported HTML needs a separate visual template |
 
-The repository name remains `obsidian-send2instapaper`; the displayed plugin name is **Send2Reader for Instapaper**. The project uses the MIT license and does not claim first-party affiliation.
+The repository name remains `obsidian-send2instapaper`; the displayed plugin name is **Paperlane**. The project uses the MIT license and does not claim first-party affiliation.

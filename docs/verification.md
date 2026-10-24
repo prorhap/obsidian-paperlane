@@ -52,3 +52,7 @@ The automated suite uses mock transports. The earlier live account test used a s
 ## Next validation step
 
 Install the package in a test vault, verify both credential methods and preview image retention, then send representative Markdown and HTML documents and inspect the target reading client offline. Record actual results before changing any pending item to passed.
+
+## Paperlane rename
+
+Version 0.1.2 changes the display name, preview branding, export footer, and new export folder to Paperlane. The existing plugin ID and recovery markers remain unchanged. The 39-test suite, manifest validation, TypeScript check, and package build are rerun for this release. Existing live-service evidence and pending manual checks retain their original scope.

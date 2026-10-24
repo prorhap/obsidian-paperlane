@@ -9,5 +9,5 @@ await build({
   external: ["obsidian", "electron", "node:*"],
   minify: false,
   sourcemap: false,
-  banner: { js: "/* Send2Reader for Instapaper - MIT; see LICENSE and THIRD_PARTY_NOTICES.md */" },
+  banner: { js: "/* Paperlane - MIT; see LICENSE and THIRD_PARTY_NOTICES.md */" },
 });

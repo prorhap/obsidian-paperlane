@@ -4,10 +4,10 @@
 
 This build targets macOS desktop and requires Obsidian 1.11.4 or later. It is not listed in the community directory.
 
-1. Extract `dist/send-to-instapaper-0.1.1.zip`.
+1. Extract `dist/send-to-instapaper-0.1.2.zip`.
 2. Copy the `send-to-instapaper` directory into your vault's `.obsidian/plugins/` directory.
 3. Restart Obsidian.
-4. Enable **Send2Reader for Instapaper** under **Settings → Community plugins**.
+4. Enable **Paperlane** under **Settings → Community plugins**.
 
 Build locally with `npm ci` followed by `npm run package` if no package is available. The build does not install itself in a vault or modify another plugin's settings.
 
@@ -16,6 +16,8 @@ The current interface uses Korean labels. This English guide describes controls 
 ### Upgrading from the initial 0.1.0 package
 
 Version 0.1.1 changes the plugin ID from `send2instapaper` to `send-to-instapaper` because directory IDs permit only lowercase letters and hyphens. If you manually installed 0.1.0, disable it first. With Obsidian closed, back up and rename its plugin directory to `send-to-instapaper`, then replace the shipped files with the new package while retaining your existing `data.json`. Restart and enable the new plugin. Reassign custom hotkeys because the command prefix has changed. Do not enable both IDs at once.
+
+Version 0.1.2 renames the displayed plugin to **Paperlane** while retaining the `send-to-instapaper` ID, settings, transfer history, and command IDs from 0.1.1. New HTML exports go into `Paperlane Exports`; existing export files are not moved or deleted.
 
 ## Generate a personal token
 
@@ -105,7 +107,7 @@ For an uncertain result, open history and run its result-check action. After a r
 
 ## Export reading HTML
 
-Use the preview's HTML-export action to create a file under `Send2Reader Exports` in the vault. It works without an Instapaper account.
+Use the preview's HTML-export action to create a file under `Paperlane Exports` in the vault. It works without an Instapaper account.
 
 The export includes reading styles and embedded local images. Remote images retain URLs and may contact their hosts when the file is opened. Scripts are removed; interactive source-page behavior is not reproduced.
 

@@ -35,5 +35,5 @@ export function exportHtml(article: Article): string {
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: https:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
 <title>${escape(article.title)}</title><style>${BLOG_CSS}</style></head>
 <body><main><header><p>OBSIDIAN · READING COPY</p><h1>${escape(article.title)}</h1></header>
-${toHtml(tree)}<footer>Send2Reader for Instapaper · 읽기용 사본</footer></main></body></html>`;
+${toHtml(tree)}<footer>Paperlane · 읽기용 사본</footer></main></body></html>`;
 }
