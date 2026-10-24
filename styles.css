@@ -1,0 +1,22 @@
+.s2r-modal { width: min(960px, 94vw); }
+.s2r-kicker { color: var(--text-accent); font-size: 11px; font-weight: 600; letter-spacing: .14em; margin-bottom: 8px; }
+.s2r-muted { color: var(--text-muted); font-size: var(--font-ui-small); }
+.s2r-images { border: 1px solid var(--background-modifier-border); border-radius: 8px; padding: 14px; margin: 18px 0; }
+.s2r-images summary { cursor: pointer; font-weight: 600; }
+.s2r-image-row { display: grid; gap: 6px; padding: 12px 0; border-bottom: 1px solid var(--background-modifier-border); }
+.s2r-image-row span { color: var(--text-muted); font-size: var(--font-ui-small); }
+.s2r-image-row input { width: 100%; }
+.s2r-warnings { padding: 16px 20px; border-left: 3px solid var(--text-warning); background: var(--background-secondary); margin: 20px 0; }
+.s2r-warnings ul { padding-left: 20px; }
+.s2r-article { max-height: 55vh; overflow: auto; border: 1px solid var(--background-modifier-border); border-radius: 10px; padding: 32px; line-height: 1.8; background: var(--background-primary); }
+.s2r-article h1 { line-height: 1.3; letter-spacing: -.025em; }
+.s2r-article h2 { margin-top: 2em; line-height: 1.4; }
+.s2r-article img { display: block; max-width: 100%; height: auto; margin: 20px auto; }
+.s2r-article table { border-collapse: collapse; display: block; overflow-x: auto; font-size: .9em; }
+.s2r-article td, .s2r-article th { border-bottom: 1px solid var(--background-modifier-border); padding: 10px 14px; text-align: left; vertical-align: top; }
+.s2r-article th { background: var(--background-secondary); }
+.s2r-article pre { padding: 18px; overflow-x: auto; background: var(--background-secondary); border-radius: 6px; }
+.s2r-article blockquote { border-left: 3px solid var(--text-accent); margin: 20px 0; padding: 4px 20px; background: var(--background-secondary); }
+.s2r-status { white-space: pre-wrap; padding: 12px 0; overflow-wrap: anywhere; }
+.s2r-history { border-bottom: 1px solid var(--background-modifier-border); padding: 12px 0; }
+@media (max-width: 600px) { .s2r-article { padding: 18px; } }
