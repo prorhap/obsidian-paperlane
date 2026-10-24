@@ -16,17 +16,17 @@ export function resolveToken(
   if (source === "environment") {
     const name = settings.envVarName ?? DEFAULT_ENV_NAME;
     if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) {
-      throw new Error("환경 변수 이름은 영문, 숫자, 밑줄만 사용하고 숫자로 시작할 수 없습니다.");
+      throw new Error("The environment variable name must contain only letters, numbers, and underscores, and cannot start with a number.");
     }
     value = Object.hasOwn(env, name) ? env[name] : undefined;
-    if (!value?.trim()) throw new Error("환경 변수에 토큰이 없습니다. 환경 변수를 전달하여 Obsidian을 다시 실행하세요.");
+    if (!value?.trim()) throw new Error("No token was found in the environment variable. Restart Obsidian with the variable set.");
   } else if (source === "secret-storage") {
     value = settings.secretId ? getSecret(settings.secretId) : undefined;
-    if (!value?.trim()) throw new Error("플러그인 설정에서 개인 액세스 토큰을 선택하고 연결을 확인하세요.");
+    if (!value?.trim()) throw new Error("Select a personal access token in Paperlane settings and check the connection.");
   } else {
-    throw new Error("지원하지 않는 토큰 읽기 방식입니다.");
+    throw new Error("Unsupported token source.");
   }
   // Reject header delimiters before trimming; never include the value in errors.
-  if (Array.from(value).some(char => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127)) throw new Error("토큰에 허용되지 않는 제어 문자가 있습니다.");
+  if (Array.from(value).some(char => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127)) throw new Error("The token contains unsupported control characters.");
   return value.trim();
 }

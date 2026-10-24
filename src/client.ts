@@ -11,28 +11,28 @@ export class InstapaperClient {
   private async call(path: string, method: "GET" | "POST" = "GET", body?: unknown): Promise<unknown> {
     let r: Response;
     try { r = await this.transport(path, method, body); }
-    catch { throw new ApiError(0, "통신이 완료되지 않았습니다. 저장 결과를 먼저 확인하세요."); }
+    catch { throw new ApiError(0, "The request did not complete. Check the result before retrying."); }
     if (r.status < 200 || r.status >= 300) {
       const messages: Record<number, string> = {
-        400: "요청이나 폴더를 확인하세요. 저장된 본문을 조회하는 경우 파싱이 지원되지 않을 수 있습니다.",
-        401: "액세스 토큰을 확인하세요.",
-        402: "외부 본문 조회 한도에 도달했습니다.",
-        403: "계정 또는 애플리케이션 권한을 확인하세요. 반드시 Premium 문제인 것은 아닙니다.",
-        429: "요청 제한에 도달했습니다. 잠시 후 결과 확인을 먼저 실행하세요.",
+        400: "Check the request and folder. Parsing may be unavailable when retrieving saved content.",
+        401: "Check your access token.",
+        402: "The external content retrieval limit has been reached.",
+        403: "Check your account or application permissions. This error does not necessarily require Premium.",
+        429: "The request limit has been reached. Wait, then check the result before retrying.",
       };
-      throw new ApiError(r.status, messages[r.status] || `Instapaper 오류 (${r.status}).`);
+      throw new ApiError(r.status, messages[r.status] || `Instapaper error (${r.status}).`);
     }
     return r.json;
   }
   async me(): Promise<Account> {
     const x = await this.call("/me");
     if (!object(x) || !validId(x.id) || typeof x.username !== "string" || typeof x.premium !== "boolean")
-      throw new ApiError(0, "계정 응답 형식을 확인하지 못했습니다.");
+      throw new ApiError(0, "Could not validate the account response.");
     return x as unknown as Account;
   }
   async folders(): Promise<Folder[]> {
     const x = await this.call("/folders");
-    if (!object(x) || !Array.isArray(x.folders)) throw new ApiError(0, "폴더 응답이 올바르지 않습니다.");
+    if (!object(x) || !Array.isArray(x.folders)) throw new ApiError(0, "The folder response is invalid.");
     return x.folders.filter((f): f is Folder => object(f) && validId(f.id)
       && typeof f.title === "string" && typeof f.public === "boolean");
   }

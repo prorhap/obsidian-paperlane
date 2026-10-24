@@ -1,3 +1,8 @@
+# Paperlane 0.3.1
+
+- Use English throughout the settings screen, including token source options, connection status, and credential/API errors shown when checking the connection.
+- Preserve existing settings, secrets, and transfer history.
+
 # Paperlane 0.3.0
 
 - Add an opt-in Sync tags setting. Markdown frontmatter tags and inline hashtags are sent with the article; categories, code, link destinations, escaped hashtags, and hidden comments are excluded. The preview lists outgoing tags.

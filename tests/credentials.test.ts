@@ -18,21 +18,21 @@ test("old settings still use secret storage and never read environment", () => {
 test("missing environment token never falls back to stored token", () => {
   for (const value of [undefined, "", "   "]) {
     assert.throws(() => resolveToken({ secretId: "old", credentialSource: "environment" },
-      { [DEFAULT_ENV_NAME]: value }, noSecret), /환경 변수에 토큰이 없습니다/);
+      { [DEFAULT_ENV_NAME]: value }, noSecret), /No token was found/);
   }
 });
 test("invalid variable names and inherited values are rejected", () => {
   for (const name of ["", "1TOKEN", "A=B", "A B", "A\nB"]) {
     assert.throws(() => resolveToken({ secretId: "", credentialSource: "environment", envVarName: name },
-      {}, noSecret), /환경 변수 이름/);
+      {}, noSecret), /environment variable name/);
   }
   assert.throws(() => resolveToken({ secretId: "", credentialSource: "environment" },
-    Object.create({ [DEFAULT_ENV_NAME]: "inherited" }), noSecret), /토큰이 없습니다/);
+    Object.create({ [DEFAULT_ENV_NAME]: "inherited" }), noSecret), /No token was found/);
 });
 test("invalid tokens fail without leaking their value", () => {
   for (const value of ["sensitive\r\nheader", "sensitive\n", "sensitive\0", "sensitive\t"]) {
     assert.throws(() => resolveToken({ secretId: "", credentialSource: "environment" },
       { [DEFAULT_ENV_NAME]: value }, noSecret), error =>
-        error instanceof Error && !error.message.includes("sensitive") && /제어 문자/.test(error.message));
+        error instanceof Error && !error.message.includes("sensitive") && /control characters/.test(error.message));
   }
 });

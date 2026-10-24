@@ -17,7 +17,7 @@ const defaults = (): PluginData => ({ schema: 1, settings: {
 const supported = (f: TFile) => /^(md|html|htm)$/i.test(f.extension);
 const label: Record<Job["status"], string> = { submitting: "전송 중", unknown: "결과 확인 필요", saved: "저장됨",
   verified: "본문과 그림 참조 확인", warning: "저장됨 · 확인 필요", failed: "전송 실패" };
-const message = (e: unknown) => e instanceof Error ? e.message : "작업을 완료하지 못했습니다.";
+const message = (e: unknown) => e instanceof Error ? e.message : "Could not complete the operation.";
 
 export default class Paperlane extends Plugin {
   data: PluginData = defaults();
@@ -70,14 +70,14 @@ export default class Paperlane extends Plugin {
   client(): InstapaperClient {
     const token = resolveToken(this.data.settings, env, id => this.app.secretStorage.getSecret(id));
     return new InstapaperClient(async (path, method, body) => {
-      if (!path.startsWith("/") || path.includes("://")) throw new Error("잘못된 API 경로");
+      if (!path.startsWith("/") || path.includes("://")) throw new Error("Invalid API path");
       const operation = requestUrl({ url: `https://www.instapaper.com/api/2${path}`, method,
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: body === undefined ? undefined : JSON.stringify(body), throw: false });
       let timer: number | undefined;
       try {
         const response = method === "GET" ? await Promise.race([operation, new Promise<never>((_, reject) => {
-          timer = window.setTimeout(() => reject(new Error("조회 시간 초과")), 20000);
+          timer = window.setTimeout(() => reject(new Error("Request timed out")), 20000);
         })]) : await operation;
         let json: unknown;
         try { json = JSON.parse(response.text); } catch { json = null; }
@@ -171,38 +171,38 @@ class SendSettings extends PluginSettingTab {
       settings.accountId = undefined; settings.folderId = undefined;
     };
     return [
-      { name: "Instapaper 연결", desc: "본인 Instapaper 애플리케이션에서 Generate access token으로 발급한 토큰을 사용합니다." },
-      { name: "토큰 읽기 방식", aliases: ["token", "credentials", "environment"], render: row => {
-        row.addDropdown(d => d.addOption("secret-storage", "Obsidian 비밀 저장소").addOption("environment", "환경 변수")
+      { name: "Instapaper connection", desc: "Use the token issued with Generate access token in your Instapaper application." },
+      { name: "Token source", aliases: ["token", "credentials", "environment"], render: row => {
+        row.addDropdown(d => d.addOption("secret-storage", "Obsidian secret storage").addOption("environment", "Environment variable")
           .setValue(settings.credentialSource ?? "secret-storage").onChange(async value => {
             settings.credentialSource = value === "environment" ? "environment" : "secret-storage";
             resetConnection(); await this.plugin.persist(); this.update();
           }));
       } },
-      { name: "환경 변수 이름", aliases: ["environment variable"],
-        desc: "값이 아닌 이름만 저장합니다. Obsidian을 실행한 프로세스의 환경에서 읽습니다.",
+      { name: "Environment variable name", aliases: ["environment variable"],
+        desc: "Only the variable name is saved. The token is read from the environment used to launch Obsidian.",
         visible: () => settings.credentialSource === "environment", render: row => {
           row.addText(t => t.setPlaceholder(DEFAULT_ENV_NAME).setValue(settings.envVarName ?? DEFAULT_ENV_NAME)
             .onChange(async name => { settings.envVarName = name.trim(); resetConnection(); await this.plugin.persist(); }));
         } },
-      { name: "개인 액세스 토큰", aliases: ["access token", "secret storage"], desc: "Obsidian 비밀 저장소의 항목을 선택합니다.",
+      { name: "Personal access token", aliases: ["access token", "secret storage"], desc: "Select an entry from Obsidian secret storage.",
         visible: () => settings.credentialSource !== "environment", render: row => {
           new SecretComponent(this.app, row.controlEl).setValue(settings.secretId).onChange(async id => {
             settings.secretId = id || ""; resetConnection(); await this.plugin.persist();
           });
         } },
-      { name: "연결 확인", aliases: ["connection", "account"], desc: this.plugin.connection
-        ? `${this.plugin.connection.username} · ${this.plugin.connection.premium ? "Premium" : "무료 계정"}`
-        : "계정과 기존 폴더를 조회합니다. 시험 문서를 자동 전송하지 않습니다.", render: row => {
-          row.addButton(b => b.setButtonText("연결 확인").onClick(async () => {
+      { name: "Check connection", aliases: ["connection", "account"], desc: this.plugin.connection
+        ? `${this.plugin.connection.username} · ${this.plugin.connection.premium ? "Premium" : "Free account"}`
+        : "Look up your account and existing folders without sending a test article.", render: row => {
+          row.addButton(b => b.setButtonText("Check connection").onClick(async () => {
             b.setDisabled(true);
             try { await this.plugin.connect(); this.update(); } catch (e) { new Notice(message(e), 8000); }
             finally { b.setDisabled(false); }
           }));
         } },
-      { name: "기본 저장 위치", aliases: ["folder", "destination"], render: row => {
+      { name: "Default folder", aliases: ["folder", "destination"], render: row => {
         row.addDropdown(d => {
-          d.addOption("", "홈");
+          d.addOption("", "Home");
           for (const f of this.plugin.folders) d.addOption(String(f.id), f.title);
           d.setValue(String(settings.folderId || "")).onChange(async value => {
             settings.folderId = value ? Number(value) : undefined; await this.plugin.persist();
@@ -215,18 +215,18 @@ class SendSettings extends PluginSettingTab {
             settings.syncTags = value; await this.plugin.persist();
           }));
         } },
-      { name: "넓은 표를 목록으로 변환", aliases: ["table", "list"], render: row => {
+      { name: "Convert wide tables to lists", aliases: ["table", "list"], render: row => {
         row.addToggle(t => t.setValue(settings.tableLists).onChange(async value => {
           settings.tableLists = value; await this.plugin.persist();
         }));
       } },
-      { name: "연결 해제", aliases: ["disconnect"], desc: "비밀 저장소 미선택 상태로 돌아갑니다. 환경 변수 삭제나 Instapaper 토큰 철회는 하지 않습니다.", render: row => {
-        row.addButton(b => b.setButtonText("연결 해제").onClick(async () => {
+      { name: "Disconnect", aliases: ["disconnect"], desc: "Clear the selected secret and connection. This does not delete environment variables or revoke your Instapaper token.", render: row => {
+        row.addButton(b => b.setButtonText("Disconnect").onClick(async () => {
           settings.secretId = ""; settings.credentialSource = "secret-storage"; resetConnection();
           await this.plugin.persist(); this.update();
         }));
       } },
-      { name: "그림 표시 확인", desc: "내장 PNG는 무료 계정의 저장과 웹 표시를 검증했습니다. 다른 형식, 대용량 및 모바일 오프라인 표시는 별도로 확인해야 합니다." },
+      { name: "Image support", desc: "Embedded PNG saving and web display have been verified with a free account. Other formats, large images, and mobile offline display require separate checks." },
     ];
   }
 }
