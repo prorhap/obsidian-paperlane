@@ -9,9 +9,14 @@ export interface Journal {
   jobs: Job[];
   flush(): Promise<void>;
 }
+export type ScheduleTimeout = (callback: () => void, milliseconds: number) => () => void;
+const browserTimeout: ScheduleTimeout = (callback, milliseconds) => {
+  const timer = window.setTimeout(callback, milliseconds);
+  return () => window.clearTimeout(timer);
+};
 export class SendCoordinator {
   private busy = false;
-  constructor(private journal: Journal, private timeoutMs = 45000) {}
+  constructor(private journal: Journal, private timeoutMs = 45000, private schedule: ScheduleTimeout = browserTimeout) {}
   async send(client: InstapaperClient, accountId: number, path: string, article: Article, folderId?: number): Promise<Job> {
     if (this.busy) throw new Error("다른 전송 또는 확인 작업이 진행 중입니다.");
     this.busy = true;
@@ -36,12 +41,12 @@ export class SendCoordinator {
         job.status = "failed"; job.notes = ["로컬 이력을 기록하지 못해 전송을 시작하지 않았습니다."];
         throw e;
       }
-      let timer: ReturnType<typeof setTimeout> | undefined;
+      let cancelTimeout: (() => void) | undefined;
       const pending = client.save(article, job.id, folderId);
       try {
         const saved = await Promise.race([
           pending,
-          new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new ApiError(0, "응답 대기 시간 초과")), this.timeoutMs); }),
+          new Promise<never>((_, reject) => { cancelTimeout = this.schedule(() => reject(new ApiError(0, "응답 대기 시간 초과")), this.timeoutMs); }),
         ]);
         job.bookmarkId = saved.id; job.status = "saved";
         try { await this.journal.flush(); }
@@ -60,7 +65,7 @@ export class SendCoordinator {
             try { await this.journal.flush(); } catch { /* ID remains visible in session history. */ }
           }
         }).catch(() => {});
-      } finally { if (timer) clearTimeout(timer); }
+      } finally { cancelTimeout?.(); }
       return job;
     } finally { this.busy = false; }
   }

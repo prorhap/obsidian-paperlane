@@ -7,7 +7,7 @@ Use English for repository documentation. Keep claims tied to the evidence in [t
 1. Clone the repository and run `npm ci`.
 2. Run `npm run check`.
 3. Use a disposable Obsidian vault for manual testing.
-4. Run `npm run package` and copy `dist/send-to-instapaper/` into the test vault's `.obsidian/plugins/` directory.
+4. Run `npm run package` and copy `dist/paperlane/` into the test vault's `.obsidian/plugins/` directory.
 5. Restart Obsidian or disable and re-enable the plugin after updating files.
 
 Do not develop directly against irreplaceable vault data. Unit tests use synthetic documents and mocked API transports; running tests must not require a real token.
@@ -17,7 +17,7 @@ Do not develop directly against irreplaceable vault data. Unit tests use synthet
 Follow the [official-guidelines review](docs/07-obsidian-guidelines.md) and the linked official pages.
 
 - Use `this.app` and public Obsidian APIs; avoid undocumented global application state.
-- Prefer Vault/Editor APIs for vault content. Keep Node filesystem usage limited and justified.
+- Prefer Vault/Editor APIs for vault content. Do not import Node filesystem or shell APIs into runtime code. The bundler rejects these dependencies.
 - Register events through the plugin lifecycle and clean up resources.
 - Use conditional command callbacks when appropriate and avoid default hotkeys.
 - Use sentence case for English UI labels and scoped CSS with theme variables.
@@ -44,7 +44,7 @@ Documentation changes should keep relative links valid and report current behavi
 1. Complete the applicable manual checks in [the validation plan](docs/03-plan-and-validation.md).
 2. Select a semantic version in `x.y.z` format and update the manifest, package metadata/lockfile, versions mapping, and version-specific documentation.
 3. Run `npm ci` and `npm run package` from the intended release revision.
-4. Inspect `dist/send-to-instapaper/`, the ZIP, and `dist/SHA256SUMS` for unintended files or credentials.
+4. Inspect `dist/paperlane/`, the ZIP, and `dist/SHA256SUMS` for unintended files or credentials.
 5. Commit and push the reviewed source and metadata. Create a tag exactly matching the manifest version, without a `v` prefix.
 6. Push the tag to trigger `.github/workflows/release.yml`. The workflow builds that source, creates and verifies provenance attestations, and publishes only `main.js`, `manifest.json`, and `styles.css`. Do not publish a competing manual release for the same tag.
 7. Keep LICENSE and THIRD_PARTY_NOTICES in the repository. The complete notices are embedded in `main.js`, since Obsidian does not download extra release assets. ZIP/checksum files remain local packaging outputs.
@@ -54,6 +54,6 @@ The official submission guide reviewed on 2026-10-24 uses the Obsidian Community
 
 Local build scripts do not commit, push, or publish. The release workflow intentionally publishes after a version-tag push. It uses a temporary GitHub token with release/attestation permissions and OIDC; no personal key is needed. Pinned official actions perform checkout, Node setup, and attestation. A manual workflow dispatch can publish an existing tag if its release has not yet been created.
 
-Verify published assets with `gh attestation verify main.js --repo prorhap/obsidian-send2instapaper` and repeat for `styles.css`. Attestations identify the source and workflow; they are not proof of flawless code or Obsidian UI behavior.
+Verify published assets with `gh attestation verify main.js --repo prorhap/obsidian-paperlane` and repeat for `styles.css`. Attestations identify the source and workflow; they are not proof of flawless code or Obsidian UI behavior.
 
 If the directory is still reviewing an older manifest while README has been renamed on the default branch, request a new-release check and wait for the matching version. Do not change README back to an obsolete name to satisfy a mixed-version result.

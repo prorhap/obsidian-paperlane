@@ -2,7 +2,6 @@ import { unified } from "unified";
 import rehypeParse from "rehype-parse";
 import { toText } from "hast-util-to-text";
 import { visit } from "unist-util-visit";
-import type { Root } from "hast";
 import type { Article, ParsedArticle } from "./types";
 import { normalizedText } from "./converter";
 import { validatedDataImage, hash } from "./images";
@@ -10,7 +9,7 @@ import { validatedDataImage, hash } from "./images";
 /** Reference retention is not proof of image download, app display, or offline caching. */
 export function verify(article: Article, parsed: ParsedArticle): string[] {
   const notes: string[] = [];
-  const tree = unified().use(rehypeParse, { fragment: true }).parse(parsed.content.body || "") as Root;
+  const tree = unified().use(rehypeParse, { fragment: true }).parse(parsed.content.body || "");
   const text = normalizedText(toText(tree));
   const missed = article.checkpoints.filter(c => !text.includes(c));
   if (missed.length) notes.push(`본문 ${missed.length}개 구간을 원문과 동일하게 확인하지 못했습니다.`);

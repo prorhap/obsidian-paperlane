@@ -2,10 +2,10 @@
 
 ## Install the development build
 
-This build targets macOS desktop and requires Obsidian 1.11.4 or later. The directory entry is submitted; automated review and in-app validation are still pending.
+This build targets macOS desktop and requires Obsidian 1.13.0 or later. The directory entry is submitted; automated review and in-app validation are still pending.
 
 1. Download `main.js`, `manifest.json`, and `styles.css` from the same GitHub release.
-2. Put the files in your vault's `.obsidian/plugins/send-to-instapaper/` directory, preserving existing `data.json`.
+2. Put the files in your vault's `.obsidian/plugins/paperlane/` directory, preserving existing `data.json`.
 3. Restart Obsidian.
 4. Enable **Paperlane** under **Settings → Community plugins**.
 
@@ -68,9 +68,9 @@ Disconnect returns the plugin to secret storage with no entry selected. It does 
 
 | Command ID | Action |
 | --- | --- |
-| `send-to-instapaper:send-current` | Preview the current Markdown or HTML file |
-| `send-to-instapaper:choose-file` | Browse folders to choose a supported file |
-| `send-to-instapaper:history` | Review transfer results |
+| `paperlane:send-current` | Preview the current Markdown or HTML file |
+| `paperlane:choose-file` | Browse folders to choose a supported file |
+| `paperlane:history` | Review transfer results |
 
 The picker starts at the vault root and searches only the current folder. Select a folder to enter it or `../` to go up. It does not search every file in the vault.
 
@@ -122,3 +122,18 @@ The export includes reading styles and embedded local images. Remote images reta
 - **Image looks correct locally but not in Instapaper:** record the format, dimensions, approximate HTML size, and reader platform. Do not include the token or private document in a public report.
 
 Local limits are 5 MiB for input, 8 MiB per image, and 24 MiB for final HTML. These are not official Instapaper limits. SVG conversion may change appearance; Mermaid, Dataview, and mathematical notation are not fully rendered. PDF upload, bulk sending, mobile support, and multi-device deduplication are not implemented.
+
+## Upgrade to Paperlane 0.1.4
+
+Version 0.1.4 moves to `prorhap/obsidian-paperlane` and changes the plugin ID to `paperlane`. Obsidian treats it as a separate plugin, so existing installations do not automatically migrate. Obsidian 1.13.0 or later is required for searchable settings.
+
+1. Disable the old `send-to-instapaper` plugin and close Obsidian.
+2. Back up `.obsidian/plugins/send-to-instapaper/data.json` if it exists. It contains settings and transfer history, including private metadata. Do not upload it to GitHub or the community directory.
+3. Install the new release in `.obsidian/plugins/paperlane/`. Copy the old `data.json` into that directory to retain history and the secret-storage reference or environment-variable name. No raw token migration is needed.
+4. Restart Obsidian, enable only the new Paperlane plugin, and check the connection. Reassign hotkeys using the `paperlane:` command prefix. Keep the old plugin disabled.
+
+The local source checkout can retain its original directory name; Git remotes and the manifest determine the published identity.
+
+### Vault file boundary
+
+Paperlane reads only selected files and referenced images registered in the current vault and creates HTML exports through the Vault API. It no longer resolves symlinks with Node.js. Files in linked folders may reside physically outside the vault if Obsidian exposes them as vault entries. Review the selected document and referenced images before sending.

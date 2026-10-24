@@ -1,27 +1,23 @@
-# Responses to directory review
+# Directory review responses
 
-## README title mismatch
+## Identity and registration
 
-Version 0.1.1 used Send2Reader for Instapaper in both its tagged README and manifest. Version 0.1.2 uses Paperlane in both. The directory was still showing the older manifest during the rename. Refresh/review the matching release instead of reverting the name. Starting in 0.1.3, the build fails if the README heading and manifest name differ.
+Version 0.1.4 uses the name Paperlane, ID `paperlane`, and repository `prorhap/obsidian-paperlane`. The README heading matches the manifest. The new ID requires a separate installation; migration is documented in the usage guide.
 
-## Direct filesystem access
+## Vault API boundary
 
-This warning identifies a real Node API import, but it does not describe the actual file operations performed. The only runtime filesystem function is `fs.promises.realpath`, used to resolve a selected source or export directory and reject symlinks outside the vault. File content operations use Obsidian's Vault API. Temporary-filesystem tests exercise internal and external symlinks, traversal, absolute paths, and similarly prefixed sibling directories.
+Runtime code no longer imports `fs`, `node:fs`, or filesystem adapters. Selected sources and referenced assets must be current-vault entries with normalized relative paths. Exports use `vault.create` after validating their destination. The bundler rejects runtime filesystem and shell dependencies. Node filesystem usage in build scripts and tests does not ship with the plugin.
 
-The import is intentionally retained rather than hiding it or removing the containment check. README discloses its purpose. This is not a sandbox against another process changing paths between validation and use, and does not eliminate the broader privileges of desktop plugins. A generic warning can remain even when this behavior is intentional.
+Physical symlink targets are no longer checked. Files indexed by Obsidian in linked folders follow its vault semantics, even if their physical location is outside the vault. This replaces the 0.1.3 containment policy with the explicitly requested Vault API boundary.
 
-## Vault enumeration
+## Source review warnings
 
-The whole-vault `vault.getFiles()` picker is removed. Users browse immediate folder children and explicitly enter subfolders or return to their parent. Current-file and context-menu sending remain available. This does not revoke Obsidian's own internal vault index or other plugins' capabilities.
+Unnecessary type assertions are removed. Sanitizer roots are narrowed by checking their node type. Credential control characters are rejected by character codes. The journal uses the loaded jobs array without aliasing `this`. Timers use browser window APIs, with injectable scheduling for Node tests. Canvas and image elements use Obsidian helpers. Image URL overrides use a typed Map.
 
-## Missing artifact attestations
+Settings implement `getSettingDefinitions()` with named searchable entries, English aliases, dynamic visibility, and `update()` after connection changes. The minimum app version is 1.13.0.
 
-The release workflow uses pinned official GitHub actions and GitHub's temporary token/OIDC identity. It builds the version tag, attests main.js, manifest.json, and styles.css, verifies the attestations, then publishes those exact files. A local checksum alone does not provide provenance. The hosted run must succeed before this item is considered delivered.
+## Enumeration and release integrity
 
-## Unsupported release attachments
+The picker lists only the browsed folder’s immediate children. Tagged builds publish only the three supported assets and attest them. The workflow independently verifies each attestation before publication.
 
-New automated releases contain only main.js, manifest.json, and styles.css. LICENSE and third-party notices stay in source control and are embedded in main.js so installed copies still include the required notices. The manual ZIP and checksums remain local build outputs. Historical releases are not rewritten or deleted.
-
-## Evidence boundaries
-
-Local tests, hosted build/attestation verification, and community review are separate checks. None establishes actual Obsidian preview fidelity or mobile/offline behavior. See the validation record for the current boundary.
+Local tests and TypeScript checks do not prove Obsidian UI rendering or the external directory’s scan outcome. Those results are recorded separately in the validation record.

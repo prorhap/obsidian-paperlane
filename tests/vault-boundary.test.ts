@@ -1,36 +1,28 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, writeFile, symlink, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { assertVaultPath } from "../src/vault-boundary";
+import { assertVaultEntry, assertVaultRelativePath } from "../src/vault-boundary";
 
-test("vault boundary resolves links and rejects external sources and export folders", async () => {
-  const fixture = await mkdtemp(join(tmpdir(), "paperlane-boundary-"));
-  try {
-    const vault = join(fixture, "vault");
-    const outside = join(fixture, "vault-other");
-    await mkdir(vault);
-    await mkdir(outside);
-    await writeFile(join(vault, "note.md"), "inside");
-    await writeFile(join(vault, "..valid.md"), "inside");
-    await writeFile(join(outside, "private.md"), "outside");
-    await symlink(join(vault, "note.md"), join(vault, "inside-link.md"));
-    await symlink(join(outside, "private.md"), join(vault, "external-link.md"));
-    await symlink(outside, join(vault, "Paperlane Exports"));
-    await symlink(vault, join(fixture, "vault-alias"));
-
-    for (const path of ["note.md", "..valid.md", "inside-link.md"]) {
-      await assertVaultPath(vault, path);
-    }
-    await assertVaultPath(join(fixture, "vault-alias"), "note.md");
-    for (const path of ["external-link.md", "Paperlane Exports", "../vault-other/private.md"]) {
-      await assert.rejects(assertVaultPath(vault, path), /볼트 밖/);
-    }
-    await assert.rejects(assertVaultPath(vault, join(outside, "private.md")), /잘못된/);
-    await assert.rejects(assertVaultPath(vault, "bad\0path"), /잘못된/);
-    await assert.rejects(assertVaultPath(vault, "missing.md"));
-  } finally {
-    await rm(fixture, { recursive: true, force: true });
+test("accepts indexed notes, images and export folders in the current vault", () => {
+  const vault = {};
+  for (const path of ["note.md", "attachments/image.png", "Paperlane Exports", "..valid.md"]) {
+    const entry = { path, vault };
+    assert.doesNotThrow(() => assertVaultEntry(entry, vault, p => p === path ? entry : null));
   }
+});
+test("rejects foreign, missing and stale entries even with the same path", () => {
+  const vault = {}, entry = { path: "note.md", vault };
+  assert.throws(() => assertVaultEntry(entry, {}, () => entry));
+  assert.throws(() => assertVaultEntry(entry, vault, () => null));
+  assert.throws(() => assertVaultEntry(entry, vault, () => ({ ...entry })));
+});
+test("rejects absolute, URI, traversal and malformed paths before lookup", () => {
+  const vault = {};
+  for (const path of ["", "/note.md", "C:/note.md", "file:///note.md", "../note.md", "a/../note.md", "./note.md", "a//b", "a/", "a\\b", "bad\0path"]) {
+    assert.throws(() => assertVaultRelativePath(path));
+    assert.throws(() => assertVaultEntry({ path, vault }, vault, () => assert.fail("must not look up malformed paths")));
+  }
+});
+test("registered linked folders follow vault semantics without physical path resolution", () => {
+  const vault = {}, entry = { path: "linked-folder/note.md", vault };
+  assert.doesNotThrow(() => assertVaultEntry(entry, vault, () => entry));
 });

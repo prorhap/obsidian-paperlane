@@ -17,12 +17,12 @@ Policy and release source text was read from the official `obsidianmd/obsidian-d
 | Area | Current alignment | Remaining boundary |
 | --- | --- | --- |
 | README | English purpose, installation, usage, account/payment conditions, network destinations, uploaded data, local journal contents, external-file boundary, and license | Keep disclosures current as features change |
-| Identity | Independent-product statement; ID `send-to-instapaper` uses only lowercase letters and hyphens, contains no `obsidian`, and does not end with `plugin` | Directory ID availability and trademark review are not established |
+| Identity | Independent-product statement; ID `paperlane` uses only lowercase letters and hyphens, contains no `obsidian`, and does not end with `plugin` | Directory ID availability and trademark review are not established |
 | Manifest | Short action-led description ending in a period; semantic version; author; minimum app version | Actual minimum-version runtime check pending |
-| Desktop APIs | `isDesktopOnly: true` for Node filesystem/process/crypto usage | macOS is the initial target; other desktop platforms untested |
+| Desktop APIs | `isDesktopOnly: true` for Node process/crypto usage | macOS is the initial target; other desktop platforms untested |
 | Repository files | Root README, LICENSE, and manifest; third-party notices generated | Public release assets not published |
 | Distribution | Tagged CI builds attest and publish only main.js/manifest.json/styles.css; full notices embedded in main.js | Old manual releases have extra files and no attestations; directory review is separate |
-| Public APIs | Instance-scoped `this.app`, Vault/Editor reads, normalized export paths; folder-scoped picker avoids whole-vault enumeration | Read-only Node realpath is retained to reject external symlink targets |
+| Public APIs | Instance-scoped `this.app`, Vault/Editor reads, normalized export paths; folder-scoped picker avoids whole-vault enumeration | Runtime filesystem access is exclusively through Vault APIs; physical symlink containment is not claimed |
 | Commands | Appropriate conditional callback for current file; no redundant plugin ID or default hotkeys | Manual command/menu checks pending |
 | Settings UI | Removed redundant plugin-name heading | Current interface remains Korean; full in-app UX review pending |
 | DOM safety | Replaced direct innerHTML assignment with sanitized DocumentFragment insertion using `sanitizeHTMLToDom` | Test embedded images and footnotes through the additional sanitizer inside Obsidian |

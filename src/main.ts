@@ -1,6 +1,6 @@
-import { Plugin, PluginSettingTab, Setting, SecretComponent, App, Modal, Notice, TFile, TFolder, MarkdownView,
-  FuzzySuggestModal, requestUrl, FileSystemAdapter, normalizePath, sanitizeHTMLToDom } from "obsidian";
-import { assertVaultPath } from "./vault-boundary";
+import { Plugin, PluginSettingTab, Setting, type SettingDefinitionItem, SecretComponent, App, Modal, Notice, TFile, TFolder, MarkdownView,
+  FuzzySuggestModal, requestUrl, normalizePath, sanitizeHTMLToDom } from "obsidian";
+import { assertVaultEntry, assertVaultRelativePath } from "./vault-boundary";
 import type { Account, Article, Folder, Job, PluginData, Source } from "./types";
 import { convert, cleanHtml } from "./converter";
 import { InstapaperClient } from "./client";
@@ -39,8 +39,7 @@ export default class Paperlane extends Plugin {
       this.data.settings.envVarName ??= DEFAULT_ENV_NAME;
     }
     for (const j of this.data.jobs) if (j.status === "submitting") j.status = "unknown";
-    const plugin = this;
-    this.coordinator = new SendCoordinator({ get jobs() { return plugin.data.jobs; }, flush: () => this.persist() });
+    this.coordinator = new SendCoordinator({ jobs: this.data.jobs, flush: () => this.persist() });
     await this.persist();
     this.addSettingTab(new SendSettings(this.app, this));
     this.addCommand({ id: "send-current", name: "현재 문서를 Instapaper로 보내기", checkCallback: checking => {
@@ -73,15 +72,15 @@ export default class Paperlane extends Plugin {
       const operation = requestUrl({ url: `https://www.instapaper.com/api/2${path}`, method,
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: body === undefined ? undefined : JSON.stringify(body), throw: false });
-      let timer: ReturnType<typeof setTimeout> | undefined;
+      let timer: number | undefined;
       try {
         const response = method === "GET" ? await Promise.race([operation, new Promise<never>((_, reject) => {
-          timer = setTimeout(() => reject(new Error("조회 시간 초과")), 20000);
+          timer = window.setTimeout(() => reject(new Error("조회 시간 초과")), 20000);
         })]) : await operation;
         let json: unknown;
         try { json = JSON.parse(response.text); } catch { json = null; }
         return { status: response.status, json, headers: response.headers };
-      } finally { if (timer) clearTimeout(timer); }
+      } finally { if (timer !== undefined) window.clearTimeout(timer); }
     });
   }
   async connect(): Promise<void> {
@@ -93,14 +92,11 @@ export default class Paperlane extends Plugin {
     this.folders = (await client.folders()).filter(f => !f.public);
     await this.persist();
   }
-  async contained(file: TFile | TFolder): Promise<void> {
-    if (this.app.vault.getAbstractFileByPath(file.path) !== file) throw new Error("볼트에 등록된 파일만 사용할 수 있습니다.");
-    const adapter = this.app.vault.adapter;
-    if (!(adapter instanceof FileSystemAdapter)) throw new Error("데스크톱 파일 볼트에서만 지원합니다.");
-    await assertVaultPath(adapter.getBasePath(), file.path);
+  private requireVaultEntry(file: TFile | TFolder): void {
+    assertVaultEntry(file, this.app.vault, path => this.app.vault.getAbstractFileByPath(path));
   }
   async source(file: TFile): Promise<Source> {
-    await this.contained(file);
+    this.requireVaultEntry(file);
     if (file.stat.size > 5 * 1024 * 1024) throw new Error("5 MiB 이하의 문서를 선택하세요.");
     const views = this.app.workspace.getLeavesOfType("markdown").map(l => l.view)
       .filter((v): v is MarkdownView => v instanceof MarkdownView && v.file?.path === file.path);
@@ -115,7 +111,7 @@ export default class Paperlane extends Plugin {
     if (!/\.(png|jpe?g|gif|webp|svg)$/i.test(ref) || ref.startsWith("/") || ref.includes("\0")) return null;
     const file = this.app.metadataCache.getFirstLinkpathDest(ref, sourcePath);
     if (!(file instanceof TFile)) return null;
-    await this.contained(file);
+    this.requireVaultEntry(file);
     if (file.stat.size > MAX_IMAGE) throw new Error("그림 파일은 8 MiB 이하여야 합니다.");
     return { path: file.path, bytes: new Uint8Array(await this.app.vault.readBinary(file)) };
   }
@@ -133,9 +129,10 @@ export default class Paperlane extends Plugin {
     if (!this.app.vault.getAbstractFileByPath(folder)) await this.app.vault.createFolder(folder);
     const destination = this.app.vault.getFolderByPath(folder);
     if (!destination) throw new Error("내보내기 폴더를 확인하세요.");
-    await this.contained(destination);
+    this.requireVaultEntry(destination);
     const name = article.title.replace(/[*?"<>|:\\/]/g, "-").slice(0, 100) || "article";
     const path = normalizePath(`${folder}/${name}-${Date.now()}.html`);
+    assertVaultRelativePath(path);
     await this.app.vault.create(path, exportHtml(article));
     return path;
   }
@@ -165,60 +162,64 @@ class FilePicker extends FuzzySuggestModal<TFile | TFolder> {
 
 class SendSettings extends PluginSettingTab {
   constructor(app: App, private plugin: Paperlane) { super(app, plugin); }
-  display(): void {
-    const { containerEl: el } = this; el.empty();
-    el.createEl("p", { text: "본인 Instapaper 애플리케이션에서 Generate access token으로 발급한 토큰을 사용합니다. 토큰을 노트나 채팅에 붙여넣지 마세요." });
+  getSettingDefinitions(): SettingDefinitionItem[] {
     const settings = this.plugin.data.settings;
     const resetConnection = () => {
       this.plugin.connection = undefined; this.plugin.folders = [];
       settings.accountId = undefined; settings.folderId = undefined;
     };
-    new Setting(el).setName("토큰 읽기 방식").addDropdown(d => d
-      .addOption("secret-storage", "Obsidian 비밀 저장소").addOption("environment", "환경 변수")
-      .setValue(settings.credentialSource ?? "secret-storage").onChange(async value => {
-        settings.credentialSource = value === "environment" ? "environment" : "secret-storage";
-        resetConnection(); await this.plugin.persist(); this.display();
-      }));
-    if (settings.credentialSource === "environment") {
-      new Setting(el).setName("환경 변수 이름")
-        .setDesc("값이 아닌 이름만 저장합니다. Obsidian을 실행한 프로세스의 환경에서 읽습니다.")
-        .addText(t => t.setPlaceholder(DEFAULT_ENV_NAME).setValue(settings.envVarName ?? DEFAULT_ENV_NAME)
-          .onChange(async name => {
-            settings.envVarName = name.trim(); resetConnection(); await this.plugin.persist();
+    return [
+      { name: "Instapaper 연결", desc: "본인 Instapaper 애플리케이션에서 Generate access token으로 발급한 토큰을 사용합니다." },
+      { name: "토큰 읽기 방식", aliases: ["token", "credentials", "environment"], render: row => {
+        row.addDropdown(d => d.addOption("secret-storage", "Obsidian 비밀 저장소").addOption("environment", "환경 변수")
+          .setValue(settings.credentialSource ?? "secret-storage").onChange(async value => {
+            settings.credentialSource = value === "environment" ? "environment" : "secret-storage";
+            resetConnection(); await this.plugin.persist(); this.update();
           }));
-    } else {
-    const row = new Setting(el).setName("개인 액세스 토큰").setDesc("Obsidian 비밀 저장소의 항목을 선택합니다.");
-    new SecretComponent(this.app, row.controlEl).setValue(this.plugin.data.settings.secretId).onChange(async id => {
-      this.plugin.data.settings.secretId = id || "";
-      resetConnection();
-      await this.plugin.persist();
-    });
-    }
-    new Setting(el).setName("연결 확인").setDesc(this.plugin.connection
-      ? `${this.plugin.connection.username} · ${this.plugin.connection.premium ? "Premium" : "무료 계정"}`
-      : "계정과 기존 폴더를 조회합니다. 시험 문서를 자동 전송하지 않습니다.")
-      .addButton(b => b.setButtonText("연결 확인").onClick(async () => {
-        b.setDisabled(true);
-        try { await this.plugin.connect(); this.display(); } catch (e) { new Notice(message(e), 8000); }
-        finally { b.setDisabled(false); }
-      }));
-    new Setting(el).setName("기본 저장 위치").addDropdown(d => {
-      d.addOption("", "홈");
-      for (const f of this.plugin.folders) d.addOption(String(f.id), f.title);
-      d.setValue(String(this.plugin.data.settings.folderId || "")).onChange(async value => {
-        this.plugin.data.settings.folderId = value ? Number(value) : undefined; await this.plugin.persist();
-      });
-    });
-    new Setting(el).setName("넓은 표를 목록으로 변환").addToggle(t => t.setValue(this.plugin.data.settings.tableLists)
-      .onChange(async value => { this.plugin.data.settings.tableLists = value; await this.plugin.persist(); }));
-    new Setting(el).setName("연결 해제").setDesc("비밀 저장소 미선택 상태로 돌아갑니다. 환경 변수 삭제나 Instapaper 토큰 철회는 하지 않습니다.")
-      .addButton(b => b.setButtonText("연결 해제").onClick(async () => {
-        this.plugin.data.settings.secretId = ""; this.plugin.data.settings.folderId = undefined;
-        this.plugin.data.settings.credentialSource = "secret-storage";
-        this.plugin.data.settings.accountId = undefined; this.plugin.connection = undefined; this.plugin.folders = [];
-        await this.plugin.persist(); this.display();
-      }));
-    el.createEl("p", { text: "내장 PNG는 무료 계정의 저장과 웹 표시를 검증했습니다. 다른 형식, 대용량 및 모바일 오프라인 표시는 별도로 확인해야 합니다.", cls: "s2r-muted" });
+      } },
+      { name: "환경 변수 이름", aliases: ["environment variable"],
+        desc: "값이 아닌 이름만 저장합니다. Obsidian을 실행한 프로세스의 환경에서 읽습니다.",
+        visible: () => settings.credentialSource === "environment", render: row => {
+          row.addText(t => t.setPlaceholder(DEFAULT_ENV_NAME).setValue(settings.envVarName ?? DEFAULT_ENV_NAME)
+            .onChange(async name => { settings.envVarName = name.trim(); resetConnection(); await this.plugin.persist(); }));
+        } },
+      { name: "개인 액세스 토큰", aliases: ["access token", "secret storage"], desc: "Obsidian 비밀 저장소의 항목을 선택합니다.",
+        visible: () => settings.credentialSource !== "environment", render: row => {
+          new SecretComponent(this.app, row.controlEl).setValue(settings.secretId).onChange(async id => {
+            settings.secretId = id || ""; resetConnection(); await this.plugin.persist();
+          });
+        } },
+      { name: "연결 확인", aliases: ["connection", "account"], desc: this.plugin.connection
+        ? `${this.plugin.connection.username} · ${this.plugin.connection.premium ? "Premium" : "무료 계정"}`
+        : "계정과 기존 폴더를 조회합니다. 시험 문서를 자동 전송하지 않습니다.", render: row => {
+          row.addButton(b => b.setButtonText("연결 확인").onClick(async () => {
+            b.setDisabled(true);
+            try { await this.plugin.connect(); this.update(); } catch (e) { new Notice(message(e), 8000); }
+            finally { b.setDisabled(false); }
+          }));
+        } },
+      { name: "기본 저장 위치", aliases: ["folder", "destination"], render: row => {
+        row.addDropdown(d => {
+          d.addOption("", "홈");
+          for (const f of this.plugin.folders) d.addOption(String(f.id), f.title);
+          d.setValue(String(settings.folderId || "")).onChange(async value => {
+            settings.folderId = value ? Number(value) : undefined; await this.plugin.persist();
+          });
+        });
+      } },
+      { name: "넓은 표를 목록으로 변환", aliases: ["table", "list"], render: row => {
+        row.addToggle(t => t.setValue(settings.tableLists).onChange(async value => {
+          settings.tableLists = value; await this.plugin.persist();
+        }));
+      } },
+      { name: "연결 해제", aliases: ["disconnect"], desc: "비밀 저장소 미선택 상태로 돌아갑니다. 환경 변수 삭제나 Instapaper 토큰 철회는 하지 않습니다.", render: row => {
+        row.addButton(b => b.setButtonText("연결 해제").onClick(async () => {
+          settings.secretId = ""; settings.credentialSource = "secret-storage"; resetConnection();
+          await this.plugin.persist(); this.update();
+        }));
+      } },
+      { name: "그림 표시 확인", desc: "내장 PNG는 무료 계정의 저장과 웹 표시를 검증했습니다. 다른 형식, 대용량 및 모바일 오프라인 표시는 별도로 확인해야 합니다." },
+    ];
   }
 }
 
@@ -226,16 +227,16 @@ class SendSettings extends PluginSettingTab {
 export async function rasterizeSvg(svg: string): Promise<Uint8Array> {
   const blob = new Blob([svg], { type: "image/svg+xml" }), url = URL.createObjectURL(blob);
   try {
-    const img = new Image();
+    const img = createEl("img");
     await new Promise<void>((resolve, reject) => {
-      const timeout = setTimeout(() => reject(new Error("SVG 변환 시간 초과")), 5000);
-      img.onload = () => { clearTimeout(timeout); resolve(); };
-      img.onerror = () => { clearTimeout(timeout); reject(new Error("SVG를 읽지 못했습니다.")); };
+      const timeout = window.setTimeout(() => reject(new Error("SVG 변환 시간 초과")), 5000);
+      img.onload = () => { window.clearTimeout(timeout); resolve(); };
+      img.onerror = () => { window.clearTimeout(timeout); reject(new Error("SVG를 읽지 못했습니다.")); };
       img.src = url;
     });
     const width = img.naturalWidth || 1200, height = img.naturalHeight || 800;
     if (width * height > 16000000 || width > 8000 || height > 8000) throw new Error("SVG 해상도가 너무 큽니다.");
-    const canvas = document.createElement("canvas"); canvas.width = width; canvas.height = height;
+    const canvas = createEl("canvas"); canvas.width = width; canvas.height = height;
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("그림 변환을 지원하지 않습니다.");
     ctx.drawImage(img, 0, 0);
@@ -249,7 +250,7 @@ class PreviewModal extends Modal {
   private article?: Article;
   private title = "";
   private wholeBody = false;
-  private imageUrls: Record<string, string> = Object.create(null);
+  private imageUrls = new Map<string, string>();
   private allowLoss = false;
   private generation = 0;
   private sending = false;
@@ -297,9 +298,9 @@ class PreviewModal extends Modal {
       row.createEl("strong", { text: image.alt });
       row.createEl("span", { text: ({ remote: "HTTPS 이미지", mapped: "지정한 HTTPS 이미지", embedded: "HTML에 내장", missing: "그림 누락" })[image.state] });
       const input = row.createEl("input", { type: "url", placeholder: "선택 사항: 이 그림의 공개 HTTPS URL" });
-      input.value = this.imageUrls[image.original] || "";
+      input.value = this.imageUrls.get(image.original) || "";
       input.addEventListener("change", () => {
-        this.imageUrls[image.original] = input.value.trim();
+        this.imageUrls.set(image.original, input.value.trim());
         this.allowLoss = false;
       });
     }

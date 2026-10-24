@@ -4,7 +4,7 @@ import { unified } from "unified";
 import rehypeParse from "rehype-parse";
 import { toText } from "hast-util-to-text";
 import { toHtml } from "hast-util-to-html";
-import type { Element, Root } from "hast";
+import type { Element } from "hast";
 export const BLOG_CSS = `
 :root{color-scheme:light dark;--bg:#f7f5f0;--ink:#252822;--muted:#6d7469;--line:#d8ded3;--accent:#386846}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:18px/1.85 system-ui,-apple-system,sans-serif}
@@ -25,7 +25,7 @@ function escape(value: string): string {
   return value.replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]!));
 }
 export function exportHtml(article: Article): string {
-  const tree = unified().use(rehypeParse, { fragment: true }).parse(cleanHtml(article.html)) as Root;
+  const tree = unified().use(rehypeParse, { fragment: true }).parse(cleanHtml(article.html));
   const root = tree.children.find((n): n is Element => n.type === "element" && n.tagName === "article");
   const first = root?.children.find(n => n.type === "element");
   if (first?.type === "element" && first.tagName === "h1" && toText(first).trim() === article.title.trim()) {

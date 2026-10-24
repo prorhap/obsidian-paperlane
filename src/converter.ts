@@ -11,7 +11,6 @@ import { toHtml } from "hast-util-to-html";
 import { visit } from "unist-util-visit";
 import { parseDocument } from "yaml";
 import type { Element, ElementContent, Root, RootContent, Text } from "hast";
-import type { Root as MdRoot } from "mdast";
 import type { Article, ConvertOptions, Source, Warning } from "./types";
 import { bytesToData, imageMime, MAX_ARTICLE, MAX_IMAGE, publicImageUrl, safeLink, sanitizeSvg, validatedDataImage } from "./images";
 
@@ -53,11 +52,11 @@ function rewriteWiki(node: MdNode): void {
     const output: MdNode[] = [];
     let last = 0;
     for (const m of child.value.matchAll(/(!)?\[\[([^\]\n]+)\]\]/g)) {
-      if (m.index! > last) output.push({ type: "text", value: child.value.slice(last, m.index) });
+      if (m.index > last) output.push({ type: "text", value: child.value.slice(last, m.index) });
       const [path, alias] = m[2]!.split("|");
       output.push(m[1] ? { type: "image", url: path!, alt: alias && !/^\d+(?:x\d+)?$/.test(alias) ? alias : path! }
         : { type: "text", value: alias || path! });
-      last = m.index! + m[0].length;
+      last = m.index + m[0].length;
     }
     if (!last) return [child];
     if (last < child.value.length) output.push({ type: "text", value: child.value.slice(last) });
@@ -83,7 +82,7 @@ const imageSchema = {
 
 /** Reusable strict sanitizer. IDs are prefixed at conversion time, not on every preview. */
 export function cleanHtml(html: string, preview = false): string {
-  const tree = unified().use(rehypeParse, { fragment: true }).parse(html) as Root;
+  const tree = unified().use(rehypeParse, { fragment: true }).parse(html);
   budget(tree);
   visit(tree, "element", (n: Element) => {
     if (n.tagName === "img") {
@@ -98,7 +97,7 @@ export function cleanHtml(html: string, preview = false): string {
     }
     if (n.properties.href && (!safeLink(String(n.properties.href)) || preview)) delete n.properties.href;
   });
-  return toHtml(sanitize(tree, imageSchema) as Root);
+  return toHtml(sanitize(tree, imageSchema));
 }
 
 export async function convert(source: Source, options: ConvertOptions = {}): Promise<Article> {
@@ -118,7 +117,7 @@ export async function convert(source: Source, options: ConvertOptions = {}): Pro
       body = body.slice(fm[0].length);
     }
     const processor = unified().use(remarkParse).use(remarkGfm);
-    const md = processor.parse(body) as MdRoot;
+    const md = processor.parse(body);
     rewriteWiki(md as unknown as MdNode);
     visit(md, "code", n => {
       if (["mermaid", "dataview", "dataviewjs", "base"].includes(n.lang || "")) {
@@ -126,9 +125,9 @@ export async function convert(source: Source, options: ConvertOptions = {}): Pro
       }
     });
     const htmlProcessor = unified().use(remarkRehype, { allowDangerousHtml: true, footnoteLabel: "출처와 각주" }).use(rehypeRaw);
-    tree = await htmlProcessor.run(md) as Root;
+    tree = await htmlProcessor.run(md);
   } else {
-    tree = unified().use(rehypeParse).parse(source.text) as Root;
+    tree = unified().use(rehypeParse).parse(source.text);
     budget(tree);
     visit(tree, "element", n => { if (n.tagName === "title" && !title) title = toText(n); });
     const bodies: Element[] = [];
@@ -207,7 +206,7 @@ export async function convert(source: Source, options: ConvertOptions = {}): Pro
           el("li", [el("strong", [txt(`${headers[i] || `열 ${i + 1}`}: `)]), ...c.children])))))];
       }
       return [n];
-    }) as Element["children"];
+    });
   }
   normalize(tree);
   const imgs: Element[] = [];
@@ -215,11 +214,11 @@ export async function convert(source: Source, options: ConvertOptions = {}): Pro
   let totalBytes = 0;
   for (const n of imgs) {
     const original = String(n.properties.src || "");
-    const image = { id: `image-${++imageIndex}`, original, alt: String(n.properties.alt || `그림 ${imageIndex}`),
-      state: "missing" as const } as Article["images"][number];
+    const image: Article["images"][number] = { id: `image-${++imageIndex}`, original, alt: String(n.properties.alt || `그림 ${imageIndex}`),
+      state: "missing" };
     article.images.push(image);
     try {
-      const mapped = options.imageUrls?.[original];
+      const mapped = options.imageUrls?.get(original);
       if (mapped) {
         const url = publicImageUrl(mapped);
         if (!url) throw new Error("이미지 주소는 공개 HTTPS URL이어야 합니다.");
@@ -272,7 +271,9 @@ export async function convert(source: Source, options: ConvertOptions = {}): Pro
       if (target) n.properties.href = `#${target}`; else delete n.properties.href;
     }
   });
-  tree = sanitize(tree, imageSchema) as Root;
+  const sanitized = sanitize(tree, imageSchema);
+  if (sanitized.type !== "root") throw new Error("Expected an article root");
+  tree = sanitized;
   article.html = String(unified().use(rehypeStringify).stringify({ type: "root", children: [el("article",
     tree.children.filter((n): n is ElementContent => n.type !== "doctype"))] }));
   if (Buffer.byteLength(article.html) > MAX_ARTICLE) throw new Error("변환된 HTML은 24 MiB 이하만 지원합니다.");

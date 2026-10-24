@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { InstapaperClient } from "../src/client";
-import { SendCoordinator } from "../src/workflow";
+import { SendCoordinator as BrowserSendCoordinator, type Journal, type ScheduleTimeout } from "../src/workflow";
 import { convert } from "../src/converter";
 import type { Job } from "../src/types";
 
@@ -98,3 +98,11 @@ test("Late response after UI timeout records original ID, no second upload", asy
   await new Promise(r=>setTimeout(r,10));
   assert.equal(job.bookmarkId,77);assert.equal(job.status,"saved");
 });
+
+const schedule: ScheduleTimeout = (callback, milliseconds) => {
+  const timer = setTimeout(callback, milliseconds);
+  return () => clearTimeout(timer);
+};
+class SendCoordinator extends BrowserSendCoordinator {
+  constructor(journal: Journal, timeoutMs = 45000) { super(journal, timeoutMs, schedule); }
+}

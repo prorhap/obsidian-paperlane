@@ -1,13 +1,21 @@
-import { realpath } from "node:fs/promises";
-import { isAbsolute, relative, resolve, sep } from "node:path";
+/** Validate logical vault paths, without resolving physical filesystem locations. */
+export function assertVaultRelativePath(path: string): void {
+  if (!path || path.startsWith("/") || path.includes("\\")
+    || /^[a-z][a-z0-9+.-]*:/i.test(path)
+    || Array.from(path).some(char => char.charCodeAt(0) < 32)
+    || path.split("/").some(part => !part || part === "." || part === "..")) {
+    throw new Error("정규화된 볼트 내부 경로만 사용할 수 있습니다.");
+  }
+}
 
-/** Only resolves metadata; file contents are read/written through Obsidian's Vault API. */
-export async function assertVaultPath(basePath: string, vaultPath: string): Promise<void> {
-  if (isAbsolute(vaultPath) || vaultPath.includes("\0")) throw new Error("잘못된 볼트 경로입니다.");
-  const base = await realpath(basePath);
-  const target = await realpath(resolve(base, vaultPath));
-  const rel = relative(base, target);
-  if (rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
-    throw new Error("볼트 밖으로 연결된 파일은 읽거나 쓰지 않습니다.");
+/** Accept only the current vault's indexed object, not a path-equivalent external file. */
+export function assertVaultEntry(
+  entry: { path: string; vault: unknown },
+  vault: unknown,
+  lookup: (path: string) => unknown,
+): void {
+  assertVaultRelativePath(entry.path);
+  if (entry.vault !== vault || lookup(entry.path) !== entry) {
+    throw new Error("현재 볼트에 등록된 파일이나 폴더만 사용할 수 있습니다.");
   }
 }

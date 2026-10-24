@@ -27,6 +27,6 @@ export function resolveToken(
     throw new Error("지원하지 않는 토큰 읽기 방식입니다.");
   }
   // Reject header delimiters before trimming; never include the value in errors.
-  if (/[\x00-\x1f\x7f]/.test(value)) throw new Error("토큰에 허용되지 않는 제어 문자가 있습니다.");
+  if (Array.from(value).some(char => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127)) throw new Error("토큰에 허용되지 않는 제어 문자가 있습니다.");
   return value.trim();
 }

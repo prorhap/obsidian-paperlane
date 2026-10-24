@@ -1,8 +1,8 @@
 {
-  "id": "send-to-instapaper",
+  "id": "paperlane",
   "name": "Paperlane",
-  "version": "0.1.3",
-  "minAppVersion": "1.11.4",
+  "version": "0.1.4",
+  "minAppVersion": "1.13.0",
   "description": "Send your Markdown and HTML notes to Instapaper with embedded images and content checks.",
   "author": "Chulwoo Choi",
   "isDesktopOnly": true

@@ -31,7 +31,7 @@ test("Missing local image is an explicit loss, never a broken local src", async 
 });
 test("HTTPS mapping provides a supported URL without uploading any file", async () => {
   let reads = 0;
-  const a = await convert(md("![그림](a.png)"), { imageUrls: { "a.png": "https://images.example.com/a.png" },
+  const a = await convert(md("![그림](a.png)"), { imageUrls: new Map([["a.png", "https://images.example.com/a.png"]]),
     readAsset: async () => { reads++; return null; } });
   assert.equal(reads, 0); assert.equal(a.images[0]!.state, "mapped");
 });

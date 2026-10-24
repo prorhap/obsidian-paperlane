@@ -74,3 +74,11 @@ On 2026-10-24, GitHub Actions run `40089857304` successfully built tag `0.1.3` f
 The published release contains exactly `main.js`, `manifest.json`, and `styles.css`. All three were downloaded separately after publication; their GitHub asset SHA-256 digests matched, and `gh attestation verify --repo prorhap/obsidian-send2instapaper` passed for each downloaded file. The downloaded manifest identifies Paperlane 0.1.3 with ID `send-to-instapaper`.
 
 This verifies published provenance, not community-review approval or the pending in-app/manual checks. Earlier release review results remain historical and do not describe the new artifact set.
+
+## Version 0.1.4 local review and identity migration
+
+On 2026-10-24, the plugin ID changed to `paperlane` and the destination repository to `prorhap/obsidian-paperlane`. Minimum Obsidian version is 1.13.0 for declarative searchable settings. Earlier release observations above retain their original IDs and repository references.
+
+Typed ESLint checks passed for unnecessary assertions, unsafe assignments, aliasing `this`, control-character regexps, bare timers, and direct document element creation. All 44 tests passed. TypeScript and bundling passed. The build rejects runtime filesystem and shell imports. The four logical vault-boundary tests replace the physical symlink test because 0.1.4 deliberately follows Obsidian’s indexed-vault semantics.
+
+Settings UI rendering and real Obsidian sending remain unverified. The public old-ID directory page was present, but native Obsidian searches for both `send to instapaper` and `Paperlane` returned no results. The official legacy community-plugins.json also lacked the old ID at the time of inspection; the exact directory-to-app propagation mechanism was not established. A new ID alone is not evidence that this search issue is fixed.

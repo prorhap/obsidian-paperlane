@@ -18,9 +18,9 @@ The plugin cannot automatically certify the third outcome. A local preview demon
 
 ## Supported environment
 
-The initial target is macOS desktop, Obsidian 1.11.4 or later, one vault, and one sending device. The personal token belongs to the same account that registered the Instapaper application. The plugin does not require a Premium flag to attempt ordinary article saving.
+The initial target is macOS desktop, Obsidian 1.13.0 or later, one vault, and one sending device. The personal token belongs to the same account that registered the Instapaper application. The plugin does not require a Premium flag to attempt ordinary article saving.
 
-The manifest is desktop-only because filesystem containment checks, hashing, and environment-variable authentication use Node.js APIs. Supporting mobile requires a separate implementation and validation effort.
+The manifest is desktop-only because hashing and environment-variable authentication use Node.js APIs. Supporting mobile requires a separate implementation and validation effort.
 
 ## Functional requirements
 
@@ -49,7 +49,7 @@ Implemented behavior is covered by local tests where practical. Completion of th
 | `choose-file` | Browse one folder at a time to select a `.md`, `.html`, or `.htm` file |
 | `history` | Review transfer status and reconcile uncertain results |
 
-Obsidian prefixes these IDs with `send-to-instapaper:`. The file menu also offers a send action for supported files. No default hotkeys are assigned. The current interface has Korean labels; English command descriptions here describe their purpose rather than their literal labels.
+Obsidian prefixes these IDs with `paperlane:`. The file menu also offers a send action for supported files. No default hotkeys are assigned. The current interface has Korean labels; English command descriptions here describe their purpose rather than their literal labels.
 
 ## Credentials and connection
 

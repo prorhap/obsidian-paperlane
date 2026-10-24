@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { Element, Root } from "hast";
+import type { Element } from "hast";
 import { unified } from "unified";
 import rehypeParse from "rehype-parse";
 import { sanitize } from "hast-util-sanitize";
@@ -28,7 +28,7 @@ export function validatedDataImage(src: string): { src: string; bytes: Uint8Arra
   if (!m) return null;
   const bytes = new Uint8Array(Buffer.from(m[2]!, "base64"));
   if (bytes.length > MAX_IMAGE || imageMime(bytes) !== m[1]) return null;
-  return { src: bytesToData(bytes, m[1]!), bytes };
+  return { src: bytesToData(bytes, m[1]), bytes };
 }
 export function publicImageUrl(src: string): string | null {
   try {
@@ -52,7 +52,7 @@ export function safeLink(src: string): boolean {
 /** Parse without a DOM: no scripts or image/network requests can run here. */
 export function sanitizeSvg(input: string): string {
   if (Buffer.byteLength(input) > MAX_IMAGE) throw new Error("SVG 파일이 너무 큽니다.");
-  const tree = unified().use(rehypeParse, { fragment: true }).parse(input) as Root;
+  const tree = unified().use(rehypeParse, { fragment: true }).parse(input);
   const allowed = ["svg","g","path","rect","circle","ellipse","line","polyline","polygon","text","tspan","defs",
     "linearGradient","radialGradient","stop","clipPath","mask","title","desc","use","marker"];
   const clean = sanitize(tree, {
@@ -63,7 +63,7 @@ export function sanitizeSvg(input: string): string {
       "dominantBaseline","offset","stopColor","stopOpacity","gradientUnits","gradientTransform",
       "clipPath","mask","markerStart","markerMid","markerEnd","markerWidth","markerHeight","refX","refY","orient"] },
     clobberPrefix: "",
-  }) as Root;
+  });
   visit(clean, "element", (n: Element) => {
     for (const [key, value] of Object.entries(n.properties)) {
       const s = String(value);
@@ -72,6 +72,7 @@ export function sanitizeSvg(input: string): string {
       if (/https?:|data:|javascript:|@import/i.test(s)) delete n.properties[key];
     }
   });
+  if (clean.type !== "root") throw new Error("Expected an SVG root");
   const svg = clean.children.find((n): n is Element => n.type === "element" && n.tagName === "svg");
   if (!svg) throw new Error("유효한 SVG 그림을 찾지 못했습니다.");
   svg.properties.xmlns = "http://www.w3.org/2000/svg";

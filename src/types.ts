@@ -33,7 +33,7 @@ export interface ConvertOptions {
   title?: string;
   wholeBody?: boolean;
   tableLists?: boolean;
-  imageUrls?: Record<string, string>;
+  imageUrls?: ReadonlyMap<string, string>;
   readAsset?: (reference: string, sourcePath: string) => Promise<Asset | null>;
   rasterizeSvg?: (svg: string) => Promise<Uint8Array>;
 }
