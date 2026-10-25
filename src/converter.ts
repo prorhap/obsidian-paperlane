@@ -1,4 +1,6 @@
 import { applyPlan, flattenStaticPanels } from "./html-review";
+import { applyReadingLayout, layoutDocument } from "./html-layout";
+import { readingTable } from "./reading-table";
 import { unified } from "unified";
 import remarkParse from "remark-parse";
 import remarkGfm from "remark-gfm";
@@ -135,6 +137,14 @@ export async function convert(source: Source, options: ConvertOptions = {}): Pro
     tree = unified().use(rehypeParse).parse(source.text);
     budget(tree);
     if (options.htmlPlan) applyPlan(tree, options.htmlPlan);
+    if (options.inspectLayout) {
+      try {
+        const boundaries = applyReadingLayout(tree, await options.inspectLayout(layoutDocument(tree)));
+        if (boundaries) warn("layout-boundaries", `Preserved ${boundaries} CSS-based text boundaries for reading.`, false);
+      } catch {
+        warn("layout-inspection", "Could not inspect the original HTML layout. Check labels, formulas, and line breaks before sending.");
+      }
+    }
     const panels = flattenStaticPanels(tree);
     if (panels) warn("panels", `Expanded ${panels} static tab panels or dialogs into reading sections.`, false);
     warn("html-layout", "HTML styles are simplified. Check formulas, tables, diagrams, and any content normally opened by a click. JavaScript-only content is not loaded.", false);
@@ -163,11 +173,14 @@ export async function convert(source: Source, options: ConvertOptions = {}): Pro
   if (options.syncTags) article.tags = normalizeTags(tags);
   const inlineSvgs = new Map<string, string>();
   let imageIndex = 0;
+  let readingTables = 0;
   // Remove executable subtrees before sanitization; converting a form must not submit it.
   function normalize(node: Root | Element): void {
     node.children = node.children.flatMap((child): RootContent[] => {
       if (child.type !== "element") return [child];
       const n = child;
+      if (source.format === "html" && n.tagName === "h1" && normalizedText(toText(n)) !== normalizedText(title))
+        n.tagName = "h2";
       if (["script","iframe","object","embed","canvas","video","audio","form"].includes(n.tagName)) {
         warn("unsupported", `${n.tagName} 요소는 읽기용 문서에서 제외됩니다.`);
         return [el("p", [txt(`[${n.tagName} 콘텐츠 생략]`)])];
@@ -210,18 +223,15 @@ export async function convert(source: Source, options: ConvertOptions = {}): Pro
         }
       }
       normalize(n);
-      if (n.tagName === "table" && options.tableLists) {
-        const rows: Element[] = [];
-        visit(n, "element", e => { if (e.tagName === "tr") rows.push(e); });
-        const cells = (r: Element) => r.children.filter((c): c is Element => c.type === "element" && ["th","td"].includes(c.tagName));
-        const headers = rows[0] && cells(rows[0]).some(c => c.tagName === "th") ? cells(rows.shift()!).map(c => toText(c)) : [];
-        return [el("section", rows.map(r => el("ul", cells(r).map((c, i) =>
-          el("li", [el("strong", [txt(`${headers[i] || `열 ${i + 1}`}: `)]), ...c.children])))))];
+      if (n.tagName === "table" && (options.tableLists ?? source.format === "html")) {
+        readingTables++;
+        return [readingTable(n)];
       }
       return [n];
     });
   }
   normalize(tree);
+  if (readingTables) warn("reading-table", `Converted ${readingTables} tables to labeled reading lists to preserve cell relationships in Instapaper.`, false);
   const imgs: Element[] = [];
   visit(tree, "element", n => { if (n.tagName === "img") imgs.push(n); });
   let totalBytes = 0;
@@ -280,6 +290,13 @@ export async function convert(source: Source, options: ConvertOptions = {}): Pro
   } });
   visit(tree, "element", n => {
     if (String(n.properties.href || "").startsWith("#")) {
+      // Instapaper can discard fragment-only anchors together with their labels.
+      // Keep HTML cross-references and footnote numbers as ordinary text instead.
+      if (source.format === "html") {
+        const label = toText(n).trim();
+        if (/^\d+(?:[,\u2013-]\d+)*$/.test(label)) n.children = [txt(`[${label}]`)];
+        n.tagName = "span"; delete n.properties.href; return;
+      }
       const target = ids.get(String(n.properties.href).slice(1));
       if (target) n.properties.href = `#${target}`; else delete n.properties.href;
     }
@@ -292,7 +309,8 @@ export async function convert(source: Source, options: ConvertOptions = {}): Pro
   if (Buffer.byteLength(article.html) > MAX_ARTICLE) throw new Error("변환된 HTML은 24 MiB 이하만 지원합니다.");
   article.text = normalizedText(toText(tree));
   visit(tree, "element", n => {
-    if (["p","td","th","pre","li","h1","h2","h3"].includes(n.tagName)) {
+    if (["p","td","th","pre","li","h1","h2","h3","h4","h5","h6","figcaption"].includes(n.tagName)
+      || (["div","section","span"].includes(n.tagName) && !n.children.some(c => c.type === "element" && ["div","section","p","table","ul","ol"].includes(c.tagName)))) {
       const text = normalizedText(toText(n));
       if (text) article.checkpoints.push(text);
     }

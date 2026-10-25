@@ -110,3 +110,23 @@ The host can reuse a setting row during `update()`. Custom elements were accumul
 69 TypeScript tests and eight helper tests validate mutual directory proof, invalid signatures, malformed tokens, missing/expired/replayed challenges, browser-origin and symlink rejection, and cleanup on success/failure. The helper leaves file deletion to Vault API to avoid races with Obsidian's file index.
 
 An explicitly authorized real AWS CLI call used profile `default`, region `us-west-2`, model `global.openai.gpt-6-astra`, and `additionalModelRequestFields.reasoning.effort = low`. It returned `PAPERLANE_OK`, `stopReason = end_turn`, 17 input tokens and 9 output tokens. No vault text was included. This verifies actual AWS access and Converse parameters, not live end-to-end helper/UI behavior.
+
+
+## 0.4.3 reading compatibility review (2026-10-25)
+
+Two local HTML documents were reviewed: a technical tutorial with 13 tables, 200 table cells, two preformatted code blocks, eight disclosures and one inline SVG; and an evidence review with four tables, 78 cells and one disclosure. Private documents, screenshots and account bookmark IDs are not included in this repository.
+
+The previous tutorial bookmark revealed three concrete reader problems: table markup disappeared, the browser's default SVG viewport produced a 300 × 118 pixel diagram, and fragment-only links lost their labels. The updated converter defaults HTML tables to labeled reading lists, handles merged cell labels, renders the tutorial SVG at 1520 × 600 pixels, and converts fragment links to text (numeric references become bracketed citations). Distinct source headlines are retained as secondary headings because the reader replaces top-level headings with its bookmark title.
+
+A local Chromium harness ran the same layout-inspection and rasterization functions as the plugin. All 758 tutorial text fragments and all 634 evidence-review text fragments appeared in their local converted output. All table cell values and disclosure titles survived. The tutorial's section badges gained whitespace, so concatenated source heading strings are intentionally not byte-identical. Code blocks are not reformatted.
+
+The real Obsidian preview used the new build, with 132 tutorial and 14 evidence-review CSS text-boundary adjustments. The tutorial image loaded in Instapaper's web reader at 1520 × 600 pixels; labeled table values appeared separately. Subsequent saved-body inspection identified the fragment-link loss and prompted the final preservation fix.
+
+Local layout inspection uses a separate sandboxed iframe. Active source elements, resource attributes, event handlers, forms, metadata and base URLs are removed from the probe; CSP denies network loads and scripts. Original content is never inserted into the host app DOM. External stylesheets, script-generated content and pseudo-element text are not reconstructed. Layout is inspected at an 800-pixel viewport, not at every source breakpoint.
+
+The immediate post-save parse endpoint returned HTTP 400 during these trials even though the bookmark existed and its web reader worked. This remains a saved-with-warning result in the plugin, not a failed save or proof of full verification. No automatic resubmission is performed. Web rendering and local conversion checks do not establish mobile offline behavior or scientific accuracy.
+
+
+Final web-reader comparison used the exact reading copies exported by Obsidian immediately before sending, not the separate harness output. All 302 tutorial checkpoints were present; both code blocks retained their exact text and whitespace, and the saved embedded PNG bytes matched the outgoing image. The evidence review retained 172 of 173 checkpoints. Its distinct but similar opening headline was omitted by Instapaper's title deduplication; all checked body paragraphs, list items, table values and bracketed reference labels remained. This reader-side title normalization is a known limitation, not a claim of lossless reproduction.
+
+Validation: 78 TypeScript tests, lint, type checking and production build passed. Installed assets match the build. The plugin was explicitly disabled and re-enabled to load the final bundle; refreshing the plugin inventory alone did not reload an already running build with the same version.

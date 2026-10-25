@@ -32,6 +32,7 @@ export interface Asset {
   path: string;
 }
 export interface ConvertOptions {
+  inspectLayout?: (html: string) => Promise<import("./html-layout").LayoutHint[]>;
   htmlPlan?: AiPlan;
   title?: string;
   wholeBody?: boolean;

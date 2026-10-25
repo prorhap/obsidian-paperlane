@@ -1,4 +1,6 @@
 import { connectHelper } from "./helper-connection";
+import { inspectHtmlLayout } from "./html-layout";
+import { svgSize } from "./svg-size";
 import { freshSettings } from "./settings-render";
 import helperSource from "../helper/server.py";
 import { defaultAi, loadAi, PROVIDERS, review, REVIEW_INSTRUCTIONS, type AiPlan, type AiProvider } from "./ai";
@@ -380,6 +382,10 @@ class HelperSetupModal extends Modal {
 
 /** SVG has already been reduced to a static, external-resource-free subset. */
 export async function rasterizeSvg(svg: string): Promise<Uint8Array> {
+  const root = new DOMParser().parseFromString(svg, "image/svg+xml").documentElement;
+  const size = svgSize(root.getAttribute("width"), root.getAttribute("height"), root.getAttribute("viewBox"));
+  root.setAttribute("width", String(size.width)); root.setAttribute("height", String(size.height));
+  svg = new XMLSerializer().serializeToString(root);
   const blob = new Blob([svg], { type: "image/svg+xml" }), url = URL.createObjectURL(blob);
   try {
     const img = createEl("img");
@@ -389,12 +395,11 @@ export async function rasterizeSvg(svg: string): Promise<Uint8Array> {
       img.onerror = () => { window.clearTimeout(timeout); reject(new Error("SVG를 읽지 못했습니다.")); };
       img.src = url;
     });
-    const width = img.naturalWidth || 1200, height = img.naturalHeight || 800;
-    if (width * height > 16000000 || width > 8000 || height > 8000) throw new Error("SVG 해상도가 너무 큽니다.");
+    const width = Math.floor(size.width * size.scale), height = Math.floor(size.height * size.scale);
     const canvas = createEl("canvas"); canvas.width = width; canvas.height = height;
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("그림 변환을 지원하지 않습니다.");
-    ctx.drawImage(img, 0, 0);
+    ctx.drawImage(img, 0, 0, width, height);
     const result = await new Promise<Blob>((resolve, reject) =>
       canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("PNG 변환 실패")), "image/png"));
     return new Uint8Array(await result.arrayBuffer());
@@ -416,9 +421,11 @@ class PreviewModal extends Modal {
   private accountId?: number;
   private folderId?: number;
   private syncTags: boolean;
+  private tableLists: boolean;
   constructor(app: App, private plugin: Paperlane, private source: Source) {
     super(app); this.accountId = plugin.connection?.id; this.folderId = plugin.data.settings.folderId;
     this.syncTags = plugin.data.settings.syncTags === true;
+    this.tableLists = source.format === "html" || plugin.data.settings.tableLists;
   }
   onOpen(): void { this.modalEl.addClass("s2r-modal"); void this.rebuild(); }
   onClose(): void { this.generation++; this.contentEl.empty(); }
@@ -429,8 +436,8 @@ class PreviewModal extends Modal {
     this.contentEl.empty(); this.contentEl.createEl("p", { text: "문서와 그림을 준비하고 있습니다…" });
     try {
       const article = await convert(this.source, {
-        htmlPlan: this.aiApplied ? this.aiPlan : undefined, title: this.title, wholeBody: this.wholeBody, syncTags: this.syncTags, tableLists: this.plugin.data.settings.tableLists,
-        imageUrls: this.imageUrls, readAsset: (r, p) => this.plugin.readAsset(r, p), rasterizeSvg,
+        htmlPlan: this.aiApplied ? this.aiPlan : undefined, title: this.title, wholeBody: this.wholeBody, syncTags: this.syncTags, tableLists: this.tableLists,
+        imageUrls: this.imageUrls, readAsset: (r, p) => this.plugin.readAsset(r, p), rasterizeSvg, inspectLayout: inspectHtmlLayout,
       });
       if (gen !== this.generation) return;
       this.article = article; this.render();
@@ -452,6 +459,9 @@ class PreviewModal extends Modal {
     if (this.source.format === "html") new Setting(el).setName("HTML 전체 본문 사용")
       .setDesc("끄면 article 또는 main이 하나일 때 해당 본문을 사용합니다.")
       .addToggle(t => t.setValue(this.wholeBody).onChange(v => { this.wholeBody = v; void this.rebuild(); }));
+    if (this.source.format === "html") new Setting(el).setName("Convert tables to reading lists")
+      .setDesc("Recommended for Instapaper: keep column labels with each value. Turn off only if you have checked table rendering in your reader.")
+      .addToggle(t => t.setValue(this.tableLists).onChange(v => { this.tableLists = v; void this.rebuild(); }));
     if (this.source.format === "html") {
       const ai = loadAi(this.plugin.data.settings.ai);
       const box = el.createDiv({ cls: "s2r-warnings" });

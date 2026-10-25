@@ -29,3 +29,4 @@
 
 .s2r-ai-advanced { min-width: 180px; }
 .s2r-ai-advanced > summary { cursor: pointer; color: var(--text-muted); }
+.s2r-layout-probe { position: fixed; left: -10000px; top: 0; width: 800px; height: 600px; visibility: hidden; pointer-events: none; border: 0; }

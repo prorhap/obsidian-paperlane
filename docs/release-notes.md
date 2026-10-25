@@ -1,4 +1,12 @@
-# Paperlane 0.4.2
+# Paperlane 0.4.3
+
+- Preserve CSS block-label boundaries and explicit multiline text when simplifying HTML. Layout inspection runs locally with scripts and resource loading blocked.
+- Convert HTML tables to labeled reading lists by default, including captions, merged columns and row spans. The preview can opt back into table markup.
+- Rasterize SVG diagrams using their intrinsic size or viewBox instead of the browser's 300-pixel fallback, with bounded 2× scaling.
+- Keep internal link labels as text and numeric citations in brackets so Instapaper cannot discard their anchor content. Convert a distinct source headline to a secondary heading; Instapaper may still suppress headings similar to its saved title.
+- Check card text, captions and lower-level headings during saved-content verification.
+
+## Paperlane 0.4.2
 
 - Remove manual helper-token entry for AWS profiles. The plugin and local helper automatically authenticate using a short-lived challenge in the exported helper directory.
 - Verify the helper response, reject expired/replayed challenges, and clean up temporary files through Vault API. Helper credentials remain out of plugin data and the vault.
